@@ -1081,7 +1081,7 @@
     <div class="form-grid2">
       <div class="form-row">
         <label>금액(원)</label>
-        <input type="number" id="expenseAmount" min="0" step="1000" placeholder="예: 500000">
+        <input type="text" inputmode="numeric" id="expenseAmount" placeholder="예: 500,000">
       </div>
       <div class="form-row">
         <label>카테고리</label>
@@ -1270,6 +1270,15 @@
 
   function fmtWon(n){
     return (Number(n)||0).toLocaleString("ko-KR") + "원";
+  }
+
+  function parseAmountValue(str){
+    return Number(String(str||"").replace(/,/g, "")) || 0;
+  }
+  function formatAmountInputValue(str){
+    const digits = String(str||"").replace(/[^\d]/g, "");
+    if(!digits) return "";
+    return Number(digits).toLocaleString("ko-KR");
   }
 
   /* ============ Real-time Clock ============ */
@@ -2094,12 +2103,15 @@
     renderExpenses();
   });
   document.getElementById("addExpenseBtn").addEventListener("click", ()=>openExpenseModal(null));
+  document.getElementById("expenseAmount").addEventListener("input", (e)=>{
+    e.target.value = formatAmountInputValue(e.target.value);
+  });
 
   function openExpenseModal(ex){
     document.getElementById("expenseModalTitle").textContent = ex ? "지출 수정" : "지출 추가";
     document.getElementById("expenseId").value = ex ? ex.id : "";
     document.getElementById("expenseTitle").value = ex ? ex.title : "";
-    document.getElementById("expenseAmount").value = ex ? ex.amount : "";
+    document.getElementById("expenseAmount").value = ex ? formatAmountInputValue(ex.amount) : "";
     document.getElementById("expenseCategory").value = ex ? ex.category : "고정비";
     const defaultDay = clampDayToMonth(viewYear, viewMonth, new Date().getDate());
     document.getElementById("expenseDate").value = ex ? ex.date : fmtDate(new Date(viewYear, viewMonth, defaultDay));
@@ -2119,7 +2131,7 @@
   document.getElementById("expenseSaveBtn").addEventListener("click", ()=>{
     const id = document.getElementById("expenseId").value;
     const title = document.getElementById("expenseTitle").value.trim();
-    const amount = Number(document.getElementById("expenseAmount").value);
+    const amount = parseAmountValue(document.getElementById("expenseAmount").value);
     const date = document.getElementById("expenseDate").value;
     if(!title){ toast("항목명을 입력해주세요.", "error"); return; }
     if(!date){ toast("지출일을 선택해주세요.", "error"); return; }
