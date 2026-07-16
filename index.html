@@ -1914,7 +1914,7 @@
     const dueDate = document.getElementById("todoDueInput").value;
     todos.push({id:uid(), text, done:false, priority, dueDate, createdAt: Date.now()});
     input.value = "";
-    document.getElementById("todoDueInput").value = "";
+    document.getElementById("todoDueInput").value = todayStr();
     document.getElementById("todoPriorityInput").value = "medium";
     saveTodos(); renderTodos(); renderAISummary();
   }
@@ -2428,6 +2428,8 @@
   // not the modal box.
   document.body.appendChild(document.getElementById("eventDatePopup"));
   document.body.appendChild(document.getElementById("timeDropdown"));
+
+  document.getElementById("todoDueInput").value = todayStr();
 
   function renderAllViews(){
     renderDow();
