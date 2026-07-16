@@ -249,6 +249,28 @@
   .ai-tax-news-item a:hover{color:var(--primary);text-decoration:underline;}
   .ai-tax-news-item::before{content:"•";color:var(--text-sub);margin-right:6px;}
 
+  /* ---------- Briefing panel style toggle (B: 좌측 컬러 바 / C: 상단 배지 + 2단 그리드) ---------- */
+  .ai-style-toggle{display:flex;gap:4px;}
+  .ai-style-btn{
+    font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;
+    border:1px solid var(--border);background:var(--card-soft);color:var(--text-sub);
+    cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+  }
+  .ai-style-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .ai-badge-c{
+    display:none;font-size:11px;font-weight:800;background:var(--primary-soft);color:var(--primary);
+    padding:4px 12px;border-radius:20px;
+  }
+  .ai-panel.style-c{border-left:none;border:1px solid var(--border);}
+  .ai-panel.style-c .ai-title{display:none;}
+  .ai-panel.style-c .ai-badge-c{display:inline-flex;}
+  .ai-panel.style-c .ai-body{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+  .ai-panel.style-c .ai-tax-news{border-top:none;border-left:1px solid var(--border);margin-top:0;padding-top:0;padding-left:20px;}
+  @media (max-width:760px){
+    .ai-panel.style-c .ai-body{grid-template-columns:1fr;}
+    .ai-panel.style-c .ai-tax-news{border-left:none;border-top:1px solid var(--border);margin-top:14px;padding-top:12px;padding-left:0;}
+  }
+
   /* ---------- Layout ---------- */
   .layout{
     display:grid;
@@ -700,14 +722,23 @@
   </div>
 
   <!-- AI ASSISTANT PANEL -->
-  <div class="ai-panel">
+  <div class="ai-panel" id="aiPanel">
     <div class="ai-content">
       <div class="ai-header">
         <div class="ai-title"><span class="ai-dot"></span> 일정 브리핑</div>
-        <div class="ai-refresh" id="aiRefresh">지금 새로고침</div>
+        <span class="ai-badge-c">일정 브리핑</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="ai-style-toggle">
+            <button class="ai-style-btn" id="aiStyleB" title="좌측 컬러 바형">B</button>
+            <button class="ai-style-btn" id="aiStyleC" title="상단 배지 + 2단 그리드">C</button>
+          </div>
+          <div class="ai-refresh" id="aiRefresh">지금 새로고침</div>
+        </div>
       </div>
-      <div class="ai-text" id="aiText">브리핑을 준비하고 있어요...</div>
-      <div class="ai-tax-news" id="aiTaxNews"></div>
+      <div class="ai-body">
+        <div class="ai-text" id="aiText">브리핑을 준비하고 있어요...</div>
+        <div class="ai-tax-news" id="aiTaxNews"></div>
+      </div>
     </div>
   </div>
 
@@ -2336,6 +2367,19 @@
     renderTaxNews(true);
     toast("AI 브리핑을 새로고침했습니다.", "info");
   });
+
+  /* ============ Briefing panel style toggle (B / C) ============ */
+  const LS_BRIEFING_STYLE = "aisch_briefing_style";
+  function applyBriefingStyle(style){
+    const panel = document.getElementById("aiPanel");
+    panel.classList.toggle("style-c", style === "c");
+    document.getElementById("aiStyleB").classList.toggle("active", style !== "c");
+    document.getElementById("aiStyleC").classList.toggle("active", style === "c");
+    save(LS_BRIEFING_STYLE, style);
+  }
+  document.getElementById("aiStyleB").addEventListener("click", ()=>applyBriefingStyle("b"));
+  document.getElementById("aiStyleC").addEventListener("click", ()=>applyBriefingStyle("c"));
+  applyBriefingStyle(load(LS_BRIEFING_STYLE, "b"));
 
   /* ============ Recur end row toggle (small UX nicety) ============ */
   document.getElementById("eventRecur").addEventListener("change", (e)=>{
