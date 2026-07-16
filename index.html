@@ -130,13 +130,6 @@
     font-size:10.5px;font-weight:600;color:var(--text-sub);
     margin-top:3px;letter-spacing:.3px;
   }
-  .sync-status{
-    font-size:9.5px;font-weight:700;margin-top:4px;letter-spacing:.2px;
-    color:var(--text-sub);opacity:.75;transition:color .2s, opacity .2s;
-  }
-  .sync-status.syncing{color:#F59E0B;opacity:1;}
-  .sync-status.synced{color:#10B981;opacity:1;}
-  .sync-status.offline{color:#EF4444;opacity:1;}
 
   .icon-btn{
     width:42px;height:42px;border-radius:12px;
@@ -734,7 +727,6 @@
       <div class="clock-box">
         <div class="clock-time" id="clockTime">--:--:--</div>
         <div class="clock-date" id="clockDate">----년 --월 --일</div>
-        <div class="sync-status" id="syncStatus">☁ 연결 중...</div>
       </div>
       <div class="action-group">
         <button class="icon-btn icon-badge" id="notifBtn" title="알림 허용" aria-label="알림 허용"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
@@ -926,7 +918,7 @@
     <div class="list" id="expenseList" style="max-height:none;"></div>
   </div>
 
-  <footer class="app-footer">AI 스케줄 비서 · 모든 데이터는 이 기기와 클라우드에 자동 저장됩니다.</footer>
+  <footer class="app-footer">AI 스케줄 비서 · 모든 데이터는 이 브라우저(LocalStorage)에만 저장됩니다.</footer>
 </div>
 
 <!-- EVENT MODAL -->
@@ -1121,7 +1113,6 @@
 
 <div class="toast-wrap" id="toastWrap"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
   "use strict";
@@ -1133,74 +1124,6 @@
   const LS_THEME  = "aisch_theme";
   const LS_NOTIFIED = "aisch_notified";
   const LS_EXPENSES = "aisch_expenses";
-
-  /* ============ Cloud Sync (Supabase) ============ */
-  const CLOUD_URL = "https://pbeyogjjflkiwhxutpva.supabase.co";
-  const CLOUD_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZXlvZ2pqZmxraXdoeHV0cHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MTkwMDQsImV4cCI6MjA5OTQ5NTAwNH0.-Tgn0xVWALZ-fsz9hI1vw6VBarhyAa_aGfkFMcK14og";
-  const CLOUD_TABLE = "scheduler_state";
-  const CLOUD_ROW_ID = "default";
-  let cloudClient = null;
-  try{ cloudClient = window.supabase ? window.supabase.createClient(CLOUD_URL, CLOUD_ANON_KEY) : null; }catch(e){ cloudClient = null; }
-  let cloudSyncTimer = null;
-
-  function setSyncStatus(state){
-    const el = document.getElementById("syncStatus");
-    if(!el) return;
-    if(state==="syncing"){ el.textContent = "☁ 저장 중..."; el.className = "sync-status syncing"; }
-    else if(state==="synced"){ el.textContent = "☁ 동기화됨"; el.className = "sync-status synced"; }
-    else if(state==="loading"){ el.textContent = "☁ 불러오는 중..."; el.className = "sync-status syncing"; }
-    else { el.textContent = "☁ 오프라인"; el.className = "sync-status offline"; }
-  }
-
-  function scheduleCloudSync(){
-    if(!cloudClient) { setSyncStatus("offline"); return; }
-    setSyncStatus("syncing");
-    clearTimeout(cloudSyncTimer);
-    cloudSyncTimer = setTimeout(pushToCloud, 800);
-  }
-
-  async function pushToCloud(){
-    if(!cloudClient) return;
-    const payload = { events, todos, memos, expenses, notified: Array.from(notifiedSet) };
-    try{
-      const { error } = await cloudClient.from(CLOUD_TABLE).upsert({ id: CLOUD_ROW_ID, data: payload, updated_at: new Date().toISOString() });
-      if(error) throw error;
-      setSyncStatus("synced");
-    }catch(e){
-      setSyncStatus("offline");
-    }
-  }
-
-  async function loadFromCloud(){
-    if(!cloudClient){ setSyncStatus("offline"); return; }
-    setSyncStatus("loading");
-    try{
-      const { data, error } = await cloudClient.from(CLOUD_TABLE).select("data").eq("id", CLOUD_ROW_ID).maybeSingle();
-      if(error) throw error;
-      const cloud = data && data.data ? data.data : null;
-      const cloudHasContent = !!(cloud && (
-        (cloud.events && cloud.events.length) ||
-        (cloud.todos && cloud.todos.length) ||
-        (cloud.memos && cloud.memos.length) ||
-        (cloud.expenses && cloud.expenses.length)
-      ));
-      if(cloudHasContent){
-        events = cloud.events || [];
-        todos = cloud.todos || [];
-        memos = cloud.memos || [];
-        expenses = cloud.expenses || [];
-        notifiedSet = new Set(cloud.notified || []);
-        save(LS_EVENTS, events); save(LS_TODOS, todos); save(LS_MEMOS, memos);
-        save(LS_EXPENSES, expenses); save(LS_NOTIFIED, Array.from(notifiedSet));
-        setSyncStatus("synced");
-      } else {
-        setSyncStatus("synced");
-        pushToCloud();
-      }
-    }catch(e){
-      setSyncStatus("offline");
-    }
-  }
 
   /* ============ State ============ */
   let events = load(LS_EVENTS, []);
@@ -1228,11 +1151,11 @@
   function save(key, val){
     try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
   }
-  function saveEvents(){ save(LS_EVENTS, events); scheduleCloudSync(); }
-  function saveTodos(){ save(LS_TODOS, todos); scheduleCloudSync(); }
-  function saveMemos(){ save(LS_MEMOS, memos); scheduleCloudSync(); }
-  function saveNotified(){ save(LS_NOTIFIED, Array.from(notifiedSet)); scheduleCloudSync(); }
-  function saveExpenses(){ save(LS_EXPENSES, expenses); scheduleCloudSync(); }
+  function saveEvents(){ save(LS_EVENTS, events); }
+  function saveTodos(){ save(LS_TODOS, todos); }
+  function saveMemos(){ save(LS_MEMOS, memos); }
+  function saveNotified(){ save(LS_NOTIFIED, Array.from(notifiedSet)); }
+  function saveExpenses(){ save(LS_EXPENSES, expenses); }
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -2482,6 +2405,8 @@
     });
     if(migrated) saveEvents();
   }
+  seedTaxEvents();
+
   /* ============ Init ============ */
   // .modal has a CSS transform (its open/close animation), which per spec makes it
   // the containing block for any position:fixed descendant. Move these popups to be
@@ -2490,37 +2415,30 @@
   document.body.appendChild(document.getElementById("eventDatePopup"));
   document.body.appendChild(document.getElementById("timeDropdown"));
 
-  function renderAllViews(){
-    renderDow();
-    renderCalendar();
-    renderDayEvents();
-    renderTodos();
-    renderMemos();
-    renderExpenses();
+  renderDow();
+  renderCalendar();
+  renderDayEvents();
+  renderTodos();
+  renderMemos();
+  renderExpenses();
+  renderAISummary();
+  renderTaxNews();
+  checkUpcomingNotifications();
+
+  // Refresh AI summary + calendar periodically to catch date rollover
+  setInterval(()=>{
     renderAISummary();
-    renderTaxNews();
-    checkUpcomingNotifications();
-  }
+  }, 60000);
 
-  loadFromCloud().finally(()=>{
-    seedTaxEvents();
-    renderAllViews();
-
-    // Refresh AI summary + calendar periodically to catch date rollover
-    setInterval(()=>{
+  let lastDayCheck = todayStr();
+  setInterval(()=>{
+    const cur = todayStr();
+    if(cur !== lastDayCheck){
+      lastDayCheck = cur;
+      renderCalendar();
       renderAISummary();
-    }, 60000);
-
-    let lastDayCheck = todayStr();
-    setInterval(()=>{
-      const cur = todayStr();
-      if(cur !== lastDayCheck){
-        lastDayCheck = cur;
-        renderCalendar();
-        renderAISummary();
-      }
-    }, 30000);
-  });
+    }
+  }, 30000);
 
 })();
 </script>
