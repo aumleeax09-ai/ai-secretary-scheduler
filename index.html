@@ -729,8 +729,8 @@
         <span class="ai-badge-c">일정 브리핑</span>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="ai-style-toggle">
-            <button class="ai-style-btn" id="aiStyleB" title="좌측 컬러 바형">B</button>
-            <button class="ai-style-btn" id="aiStyleC" title="상단 배지 + 2단 그리드">C</button>
+            <button class="ai-style-btn" id="aiStyleB" title="좌측 컬러 바형">▯</button>
+            <button class="ai-style-btn" id="aiStyleC" title="상단 배지 + 2단 그리드">▭</button>
           </div>
           <div class="ai-refresh" id="aiRefresh">지금 새로고침</div>
         </div>
@@ -2379,7 +2379,7 @@
   }
   document.getElementById("aiStyleB").addEventListener("click", ()=>applyBriefingStyle("b"));
   document.getElementById("aiStyleC").addEventListener("click", ()=>applyBriefingStyle("c"));
-  applyBriefingStyle(load(LS_BRIEFING_STYLE, "b"));
+  applyBriefingStyle(load(LS_BRIEFING_STYLE, "c"));
 
   /* ============ Recur end row toggle (small UX nicety) ============ */
   document.getElementById("eventRecur").addEventListener("change", (e)=>{
