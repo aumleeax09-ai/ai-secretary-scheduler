@@ -1269,7 +1269,7 @@
   }
 
   function fmtWon(n){
-    return (Number(n)||0).toLocaleString("ko-KR") + "원";
+    return ((Number(n)||0) / 100000000).toFixed(2) + "억";
   }
 
   function parseAmountValue(str){
