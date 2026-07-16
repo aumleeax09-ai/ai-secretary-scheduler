@@ -257,13 +257,7 @@
     cursor:pointer;transition:background .15s,color .15s,border-color .15s;
   }
   .ai-style-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
-  .ai-badge-c{
-    display:none;font-size:11px;font-weight:800;background:var(--primary-soft);color:var(--primary);
-    padding:4px 12px;border-radius:20px;
-  }
   .ai-panel.style-c{border-left:none;border:1px solid var(--border);}
-  .ai-panel.style-c .ai-title{display:none;}
-  .ai-panel.style-c .ai-badge-c{display:inline-flex;}
   .ai-panel.style-c .ai-body{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
   .ai-panel.style-c .ai-tax-news{border-top:none;border-left:1px solid var(--border);margin-top:0;padding-top:0;padding-left:20px;}
   @media (max-width:760px){
@@ -726,7 +720,6 @@
     <div class="ai-content">
       <div class="ai-header">
         <div class="ai-title"><span class="ai-dot"></span> 일정 브리핑</div>
-        <span class="ai-badge-c">일정 브리핑</span>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="ai-style-toggle">
             <button class="ai-style-btn" id="aiStyleC" title="상단 배지 + 2단 그리드">▭</button>
