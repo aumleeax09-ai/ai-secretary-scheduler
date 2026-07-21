@@ -617,6 +617,48 @@
   .edp-day.today{outline:1.5px solid var(--today-ring);outline-offset:-1.5px;}
   .edp-day.selected{background:var(--primary);color:#fff;}
 
+  /* ---------- 연차(휴가) 관리: 종류별 탭, 기간선택 달력 ---------- */
+  .leave-type-tabs, .leave-half-tabs{display:flex;gap:8px;}
+  .leave-type-btn, .leave-half-btn{
+    flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border);
+    background:var(--card-soft);color:var(--text-sub);font-weight:700;font-size:13px;
+    cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+  }
+  .leave-type-btn.active, .leave-half-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .leave-range-cal{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--card-soft);}
+  .lr-title{flex:1;text-align:center;font-size:13px;font-weight:700;}
+  .lr-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .lr-day{
+    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;font-weight:600;border-radius:8px;cursor:pointer;color:var(--text);
+    transition:background .12s,color .12s;
+  }
+  .lr-day:hover{background:var(--primary-soft);}
+  .lr-day.empty{cursor:default;}
+  .lr-day.empty:hover{background:transparent;}
+  .lr-day.sun{color:var(--danger);}
+  .lr-day.sat{color:var(--primary);}
+  .lr-day.today{outline:1.5px solid var(--today-ring);outline-offset:-1.5px;}
+  .lr-day.in-range{background:var(--good-soft);color:var(--good);border-radius:0;}
+  .lr-day.range-start, .lr-day.range-end{background:var(--good);color:#fff;}
+  .lr-day.range-start{border-radius:8px 0 0 8px;}
+  .lr-day.range-end{border-radius:0 8px 8px 0;}
+  .lr-day.range-start.range-end{border-radius:8px;}
+  .leave-range-summary{margin-top:10px;font-size:12.5px;font-weight:700;color:var(--text-sub);text-align:center;}
+  .leave-time-hint{font-size:11.5px;color:var(--text-sub);margin-top:6px;}
+  .tag-leave-full{background:#d1fae5;color:#059669;}
+  html[data-theme="dark"] .tag-leave-full{background:#0f3d2e;color:#34d399;}
+  .tag-leave-half{background:#ffedd5;color:#c2410c;}
+  html[data-theme="dark"] .tag-leave-half{background:#3a2410;color:#fb923c;}
+  .tag-leave-quarter{background:#f3e8ff;color:#9333ea;}
+  html[data-theme="dark"] .tag-leave-quarter{background:#2e1065;color:#c084fc;}
+  .cal-event-pill.leave-full{background:#d1fae5;color:#059669;}
+  html[data-theme="dark"] .cal-event-pill.leave-full{background:#0f3d2e;color:#34d399;}
+  .cal-event-pill.leave-half{background:#ffedd5;color:#c2410c;}
+  html[data-theme="dark"] .cal-event-pill.leave-half{background:#3a2410;color:#fb923c;}
+  .cal-event-pill.leave-quarter{background:#f3e8ff;color:#9333ea;}
+  html[data-theme="dark"] .cal-event-pill.leave-quarter{background:#2e1065;color:#c084fc;}
+
   /* ---------- Custom time picker (30-minute step scroll list) ---------- */
   .select-wrap{position:relative;}
   .select-wrap input{padding-right:28px;width:100%;}
@@ -949,6 +991,74 @@
       <button class="btn btn-danger hidden" id="eventDeleteBtn">삭제</button>
       <button class="btn btn-soft" id="eventCancelBtn">취소</button>
       <button class="btn btn-primary" id="eventSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 연차(휴가) 관리 모달: 일정 추가 카테고리에서 "연차"를 고르면 열림 -->
+<div class="modal-overlay" id="leaveModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      </div>
+      <h2 id="leaveModalTitle">연차 신청</h2>
+    </div>
+    <input type="hidden" id="leaveId">
+    <input type="hidden" id="leaveGroupId">
+    <div class="form-row">
+      <label>이름</label>
+      <input type="text" id="leaveName" placeholder="예: 홍길동">
+    </div>
+    <div class="form-row">
+      <label>휴가 종류</label>
+      <div class="leave-type-tabs">
+        <button type="button" class="leave-type-btn" data-type="연차">연차</button>
+        <button type="button" class="leave-type-btn" data-type="반차">반차</button>
+        <button type="button" class="leave-type-btn" data-type="반반차">반반차</button>
+      </div>
+    </div>
+
+    <!-- 연차: 기간(Date Range) 선택용 인라인 달력. 시작일 클릭 -> 종료일 클릭 순서로 선택 -->
+    <div class="form-row" id="leaveRangeSection">
+      <label>사용 기간 (달력에서 시작일 → 종료일 순서로 클릭)</label>
+      <div class="leave-range-cal">
+        <div class="edp-header">
+          <button type="button" class="edp-nav" id="lrPrev" aria-label="이전 달">‹</button>
+          <div class="lr-title" id="lrTitle"></div>
+          <button type="button" class="edp-nav" id="lrNext" aria-label="다음 달">›</button>
+        </div>
+        <div class="edp-dow" id="lrDow"></div>
+        <div class="lr-grid" id="lrGrid"></div>
+      </div>
+      <div class="leave-range-summary" id="leaveRangeSummary">시작일을 먼저 선택해주세요.</div>
+    </div>
+
+    <!-- 반차 / 반반차: 날짜 하루 + 오전·오후 선택 -->
+    <div class="form-grid2" id="leaveSingleSection">
+      <div class="form-row">
+        <label>날짜</label>
+        <input type="date" id="leaveSingleDate">
+      </div>
+      <div class="form-row">
+        <label>시간대</label>
+        <div class="leave-half-tabs">
+          <button type="button" class="leave-half-btn" data-half="오전">오전</button>
+          <button type="button" class="leave-half-btn" data-half="오후">오후</button>
+        </div>
+        <div class="leave-time-hint" id="leaveTimeHint"></div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>사유</label>
+      <textarea id="leaveReason" placeholder="사유를 입력하세요 (선택)"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger hidden" id="leaveDeleteBtn">삭제</button>
+      <button class="btn btn-soft" id="leaveCancelBtn">취소</button>
+      <button class="btn btn-primary" id="leaveSaveBtn">저장</button>
     </div>
   </div>
 </div>
@@ -1423,7 +1533,9 @@
       let pillsHtml = "";
       const maxShow = 3;
       evs.slice(0,maxShow).forEach(ev=>{
-        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""}">${escapeHtml(ev.title)}</div>`;
+        // 연차/반차/반반차는 종류별로 다른 색으로 표시 (연차:초록, 반차:주황, 반반차:보라)
+        const leaveCls = ev.leaveType==="연차"?"leave-full":ev.leaveType==="반차"?"leave-half":ev.leaveType==="반반차"?"leave-quarter":"";
+        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""} ${leaveCls}">${escapeHtml(ev.title)}</div>`;
       });
       if(evs.length > maxShow){
         pillsHtml += `<div class="cal-more">+${evs.length-maxShow}개 더보기</div>`;
@@ -1547,14 +1659,17 @@
     evs.forEach(ev=>{
       const item = document.createElement("div");
       item.className = "item";
-      const catTag = ev.category==="업무"?"tag-work":ev.category==="개인"?"tag-personal":ev.category==="회의"?"tag-meeting":ev.category==="교육"?"tag-edu":ev.category==="연차"?"tag-annual":ev.category==="중요"?"tag-important":"tag-etc";
+      // 연차/반차/반반차는 leaveType 기준으로 전용 색상 태그를 사용 (연차:초록, 반차:주황, 반반차:보라)
+      const catTag = ev.leaveType==="연차"?"tag-leave-full":ev.leaveType==="반차"?"tag-leave-half":ev.leaveType==="반반차"?"tag-leave-quarter"
+        :ev.category==="업무"?"tag-work":ev.category==="개인"?"tag-personal":ev.category==="회의"?"tag-meeting":ev.category==="교육"?"tag-edu":ev.category==="연차"?"tag-annual":ev.category==="중요"?"tag-important":"tag-etc";
+      const catLabel = ev.leaveType || ev.category;
       const timeStr = ev.start ? (ev.start + (ev.end? " ~ "+ev.end : "")) : "종일";
       item.innerHTML = `
         <div class="item-body">
           <div class="item-title">${ev.important?"⭐ ":""}${escapeHtml(ev.title)}</div>
           <div class="item-meta">
             <span>${timeStr}</span>
-            <span class="tag ${catTag}">${escapeHtml(ev.category)}</span>
+            <span class="tag ${catTag}">${escapeHtml(catLabel)}</span>
             ${ev.recur && ev.recur!=="none" ? `<span class="tag tag-recur">🔁 ${recurLabel(ev.recur)}</span>` : ""}
             ${ev.weekendAdjust ? `<span class="tag tag-recur">📅 주말→평일 조정</span>` : ""}
           </div>
@@ -1564,8 +1679,9 @@
           <button data-act="edit" title="수정">✏️</button>
           <button data-act="del" title="삭제">🗑️</button>
         </div>`;
-      item.querySelector('[data-act="edit"]').addEventListener("click", ()=>openEventModal(ev));
-      item.querySelector('[data-act="del"]').addEventListener("click", ()=>deleteEvent(ev.id));
+      // 연차 계열 일정은 전용 팝업(연차 신청)으로, 나머지는 기존 일정 수정 모달로 연결
+      item.querySelector('[data-act="edit"]').addEventListener("click", ()=> ev.leaveType ? openLeaveModal(ev) : openEventModal(ev));
+      item.querySelector('[data-act="del"]').addEventListener("click", ()=> ev.leaveType ? deleteLeaveGroup(ev.leaveGroupId) : deleteEvent(ev.id));
       listEl.appendChild(item);
     });
   }
@@ -1719,6 +1835,238 @@
     renderAISummary();
     toast("일정을 삭제했습니다.", "info");
   }
+
+  /* ============ 연차(휴가) 관리 ============ */
+  // 기존 일정(events) 배열을 그대로 재사용한다. 연차/반차/반반차 이벤트는
+  // 일반 이벤트에 leaveType/leaveName/leaveHalf/leaveGroupId 필드만 추가로 갖는다.
+  // - 연차(기간): 시작일~종료일의 날짜마다 이벤트를 하나씩 만들고, 같은 leaveGroupId로 묶는다.
+  // - 반차/반반차(하루): 이벤트 1개만 만들고, leaveGroupId는 자기 자신의 id와 같다.
+  // 이렇게 하면 캘린더/일별목록 등 기존 렌더링 코드를 전혀 건드리지 않고 그대로 재사용할 수 있다.
+  const QUARTER_TIME = { "오전":["08:30","10:30"], "오후":["15:30","17:30"] };
+  let lrYear, lrMonth;               // 연차 기간선택 달력이 보여주는 연/월
+  let leaveRangeStart = null;        // 선택된 시작일 (yyyy-mm-dd)
+  let leaveRangeEnd = null;          // 선택된 종료일 (yyyy-mm-dd)
+  let currentLeaveType = "연차";     // 연차 | 반차 | 반반차
+  let currentLeaveHalf = "오전";     // 오전 | 오후 (반차/반반차용)
+
+  function deleteLeaveGroup(groupId){
+    events = events.filter(e=>e.leaveGroupId!==groupId);
+    saveEvents();
+    renderCalendar();
+    renderDayEvents();
+    renderAISummary();
+    toast("연차를 삭제했습니다.", "info");
+  }
+
+  function setLeaveType(type){
+    currentLeaveType = type;
+    document.querySelectorAll(".leave-type-btn").forEach(b=>b.classList.toggle("active", b.dataset.type===type));
+    const isRange = type === "연차";
+    document.getElementById("leaveRangeSection").style.display = isRange ? "" : "none";
+    document.getElementById("leaveSingleSection").style.display = isRange ? "none" : "grid";
+    updateLeaveTimeHint();
+  }
+  function setLeaveHalf(half){
+    currentLeaveHalf = half;
+    document.querySelectorAll(".leave-half-btn").forEach(b=>b.classList.toggle("active", b.dataset.half===half));
+    updateLeaveTimeHint();
+  }
+  function updateLeaveTimeHint(){
+    const hintEl = document.getElementById("leaveTimeHint");
+    if(currentLeaveType === "반반차"){
+      const [s,e] = QUARTER_TIME[currentLeaveHalf];
+      hintEl.textContent = `사용 시간: ${s} ~ ${e} (2시간)`;
+    } else {
+      hintEl.textContent = "";
+    }
+  }
+
+  function renderLeaveRangeCal(){
+    document.getElementById("lrTitle").textContent = `${lrYear}년 ${lrMonth+1}월`;
+    document.getElementById("lrDow").innerHTML =
+      DOW.map((d,i)=>`<span class="${i===0?"sun":i===6?"sat":""}">${d}</span>`).join("");
+
+    const gridEl = document.getElementById("lrGrid");
+    gridEl.innerHTML = "";
+    const firstDay = new Date(lrYear, lrMonth, 1);
+    const startOffset = firstDay.getDay();
+    const daysInMonth = new Date(lrYear, lrMonth+1, 0).getDate();
+    const todayString = todayStr();
+
+    for(let i=0;i<startOffset;i++){
+      const cell = document.createElement("div");
+      cell.className = "lr-day empty";
+      gridEl.appendChild(cell);
+    }
+    for(let day=1; day<=daysInMonth; day++){
+      const dateStr = fmtDate(new Date(lrYear, lrMonth, day));
+      const dow = new Date(lrYear, lrMonth, day).getDay();
+      let cls = "lr-day";
+      if(dow===0) cls += " sun"; else if(dow===6) cls += " sat";
+      if(dateStr===todayString) cls += " today";
+      if(leaveRangeStart && dateStr===leaveRangeStart) cls += " range-start";
+      if(leaveRangeEnd && dateStr===leaveRangeEnd) cls += " range-end";
+      if(leaveRangeStart && leaveRangeEnd && dateStr>leaveRangeStart && dateStr<leaveRangeEnd) cls += " in-range";
+      const cell = document.createElement("div");
+      cell.className = cls;
+      cell.textContent = day;
+      cell.addEventListener("click", ()=>onLeaveRangeDayClick(dateStr));
+      gridEl.appendChild(cell);
+    }
+  }
+  // 시작일 클릭 -> 종료일 클릭 순서로 기간을 선택한다.
+  // 종료일이 시작일보다 이전이면 선택을 무시하고(=시작일과 종료일이 서로 바뀌지 않음) 안내만 띄운다.
+  function onLeaveRangeDayClick(dateStr){
+    if(!leaveRangeStart || (leaveRangeStart && leaveRangeEnd)){
+      leaveRangeStart = dateStr;
+      leaveRangeEnd = null;
+    } else if(dateStr < leaveRangeStart){
+      toast("종료일은 시작일보다 이전일 수 없습니다.", "error");
+      return;
+    } else {
+      leaveRangeEnd = dateStr;
+    }
+    renderLeaveRangeCal();
+    updateLeaveRangeSummary();
+  }
+  function updateLeaveRangeSummary(){
+    const el = document.getElementById("leaveRangeSummary");
+    if(!leaveRangeStart){
+      el.textContent = "시작일을 먼저 선택해주세요.";
+    } else if(!leaveRangeEnd){
+      el.textContent = `시작일: ${leaveRangeStart} · 종료일을 선택해주세요.`;
+    } else {
+      const days = Math.round((parseDate(leaveRangeEnd) - parseDate(leaveRangeStart)) / 86400000) + 1;
+      el.textContent = `${leaveRangeStart} ~ ${leaveRangeEnd} · 총 ${days}일 사용`;
+    }
+  }
+  document.getElementById("lrPrev").addEventListener("click", ()=>{
+    lrMonth--; if(lrMonth<0){ lrMonth=11; lrYear--; }
+    renderLeaveRangeCal();
+  });
+  document.getElementById("lrNext").addEventListener("click", ()=>{
+    lrMonth++; if(lrMonth>11){ lrMonth=0; lrYear++; }
+    renderLeaveRangeCal();
+  });
+  document.querySelectorAll(".leave-type-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>setLeaveType(btn.dataset.type));
+  });
+  document.querySelectorAll(".leave-half-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>setLeaveHalf(btn.dataset.half));
+  });
+
+  // ev가 있으면 수정(같은 leaveGroupId를 가진 날짜들을 모아 기간/값을 복원), 없으면 새로 신청
+  function openLeaveModal(ev){
+    document.getElementById("leaveModalTitle").textContent = ev ? "연차 수정" : "연차 신청";
+    const groupEvents = ev ? events.filter(e=>e.leaveGroupId===ev.leaveGroupId) : [];
+
+    document.getElementById("leaveId").value = ev ? ev.id : "";
+    document.getElementById("leaveGroupId").value = ev ? ev.leaveGroupId : "";
+    document.getElementById("leaveName").value = ev ? (ev.leaveName||"") : "";
+    document.getElementById("leaveReason").value = ev ? (ev.desc||"") : "";
+
+    setLeaveType(ev ? ev.leaveType : "연차");
+    setLeaveHalf(ev ? (ev.leaveHalf||"오전") : "오전");
+
+    if(currentLeaveType === "연차" && groupEvents.length){
+      const dates = groupEvents.map(e=>e.date).sort();
+      leaveRangeStart = dates[0];
+      leaveRangeEnd = dates[dates.length-1];
+    } else {
+      leaveRangeStart = null;
+      leaveRangeEnd = null;
+    }
+    document.getElementById("leaveSingleDate").value = (ev && currentLeaveType !== "연차") ? ev.date : todayStr();
+
+    const baseForCal = leaveRangeStart || (ev ? ev.date : todayStr());
+    const d = parseDate(baseForCal);
+    lrYear = d.getFullYear();
+    lrMonth = d.getMonth();
+    renderLeaveRangeCal();
+    updateLeaveRangeSummary();
+
+    document.getElementById("leaveDeleteBtn").classList.toggle("hidden", !ev);
+    document.getElementById("leaveModalOverlay").classList.add("open");
+  }
+  function closeLeaveModal(){
+    document.getElementById("leaveModalOverlay").classList.remove("open");
+  }
+  // 일정 추가/수정 화면에서 카테고리를 "연차"로 바꾸면 전용 연차 신청 팝업으로 전환한다.
+  document.getElementById("eventCategory").addEventListener("change", (e)=>{
+    if(e.target.value === "연차"){
+      closeEventModal();
+      openLeaveModal(null);
+    }
+  });
+  document.getElementById("leaveCancelBtn").addEventListener("click", closeLeaveModal);
+  document.getElementById("leaveModalOverlay").addEventListener("click", (e)=>{
+    if(e.target.id === "leaveModalOverlay") closeLeaveModal();
+  });
+  document.getElementById("leaveDeleteBtn").addEventListener("click", ()=>{
+    const groupId = document.getElementById("leaveGroupId").value;
+    if(groupId) deleteLeaveGroup(groupId);
+    closeLeaveModal();
+  });
+  document.getElementById("leaveSaveBtn").addEventListener("click", ()=>{
+    const editingId = document.getElementById("leaveId").value;
+    const editingGroupId = document.getElementById("leaveGroupId").value;
+    const name = document.getElementById("leaveName").value.trim();
+    const reason = document.getElementById("leaveReason").value.trim();
+    const isEdit = !!editingId;
+
+    if(currentLeaveType === "연차"){
+      if(!leaveRangeStart || !leaveRangeEnd){ toast("시작일과 종료일을 모두 선택해주세요.", "error"); return; }
+    } else if(!document.getElementById("leaveSingleDate").value){
+      toast("날짜를 선택해주세요.", "error");
+      return;
+    }
+
+    // 수정인 경우, 기존 그룹(연차는 여러 날짜, 반차/반반차는 하루)을 통째로 지우고 새로 만든다.
+    if(isEdit) events = events.filter(e=>e.leaveGroupId !== editingGroupId);
+    const newGroupId = isEdit ? editingGroupId : uid();
+
+    if(currentLeaveType === "연차"){
+      const endDate = parseDate(leaveRangeEnd);
+      const cursor = parseDate(leaveRangeStart);
+      while(cursor <= endDate){
+        events.push({
+          id: uid(),
+          title: name ? `${name} 연차` : "연차",
+          date: fmtDate(cursor),
+          category: "연차",
+          leaveType: "연차",
+          leaveName: name,
+          leaveGroupId: newGroupId,
+          start: "", end: "", desc: reason,
+          recur: "none", recurEnd: "", important: false
+        });
+        cursor.setDate(cursor.getDate()+1);
+      }
+    } else {
+      const date = document.getElementById("leaveSingleDate").value;
+      let start = "", end = "";
+      if(currentLeaveType === "반반차"){ [start, end] = QUARTER_TIME[currentLeaveHalf]; }
+      const title = name ? `${name} ${currentLeaveHalf} ${currentLeaveType}` : `${currentLeaveHalf} ${currentLeaveType}`;
+      events.push({
+        id: newGroupId,
+        title, date,
+        category: "연차",
+        leaveType: currentLeaveType,
+        leaveName: name,
+        leaveHalf: currentLeaveHalf,
+        leaveGroupId: newGroupId,
+        start, end, desc: reason,
+        recur: "none", recurEnd: "", important: false
+      });
+    }
+
+    saveEvents();
+    toast(isEdit ? "연차를 수정했습니다." : "연차를 등록했습니다.", "success");
+    closeLeaveModal();
+    renderCalendar();
+    renderDayEvents();
+    renderAISummary();
+  });
 
   /* ============ Custom date picker (event "날짜" field) ============ */
   // Renders a small calendar dropdown matching the app's own calendar styling,
@@ -2385,7 +2733,7 @@
 
   /* ============ Keyboard: ESC closes modal ============ */
   document.addEventListener("keydown", e=>{
-    if(e.key === "Escape"){ closeEventModal(); closeTodoModal(); closeExpenseModal(); closeMemoModal(); }
+    if(e.key === "Escape"){ closeEventModal(); closeLeaveModal(); closeTodoModal(); closeExpenseModal(); closeMemoModal(); }
   });
 
   /* ============ Tax filing schedule auto-seed (법인 부가세 4회 + 원천세 매월) ============ */
