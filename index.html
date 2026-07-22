@@ -1474,7 +1474,7 @@
   // Supabase 안에 SECURITY DEFINER로 만들어둔 저장 프로시저(RPC)를 호출할 뿐이다.
   // 실제 비밀번호 확인/해시(crypt)는 Postgres 안에서만 이뤄진다.
   const LS_AUTH_TOKEN = "aisch_auth_token";
-  const ROLE_LABEL = { admin:"관리자", member:"팀원", viewer:"열람자" };
+  const ROLE_LABEL = { admin:"Admin", member:"Member", viewer:"Viewer" };
   let currentUser = null;      // {id, name, username, role, token}
   let appStarted = false;      // startApp()이 중복 실행되지 않도록 막는 플래그
 
