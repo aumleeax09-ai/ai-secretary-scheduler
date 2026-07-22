@@ -604,16 +604,29 @@
   .admin-member-actions button[data-act="delete"]:hover{background:var(--danger-soft);color:var(--danger);}
 
   /* ---------- 권한별 화면 제한 ---------- */
-  /* 열람자(viewer): 조회만 가능 — 입력/수정/삭제/체크 등 변경 동작을 전부 숨기거나 비활성화 */
-  .role-viewer [data-act="edit"],
-  .role-viewer [data-act="del"],
-  .role-viewer #addEventBtn,
-  .role-viewer #addExpenseBtn,
-  .role-viewer #todoAddBtn,
-  .role-viewer #memoAddBtn,
-  .role-viewer .add-inline,
+  /* 열람자(viewer): 등록/수정 화면(모달)은 열어서 볼 수 있지만, 그 안에서 입력·저장·삭제는
+     전부 막는다 — 달력 이동, 필터, 모달 열기/닫기 같은 "탐색"은 그대로 허용한다. */
   .role-viewer #restoreBtn{display:none !important;}
   .role-viewer .checkbox{pointer-events:none;}
+  .role-viewer .add-inline input,
+  .role-viewer .add-inline select,
+  .role-viewer .add-inline button,
+  .role-viewer .modal input,
+  .role-viewer .modal select,
+  .role-viewer .modal textarea,
+  .role-viewer .modal .btn-primary,
+  .role-viewer .leave-type-btn,
+  .role-viewer .leave-half-btn,
+  .role-viewer .lr-day,
+  .role-viewer [data-act="del"],
+  .role-viewer #eventDeleteBtn,
+  .role-viewer #leaveDeleteBtn,
+  .role-viewer #todoModalDeleteBtn,
+  .role-viewer #memoModalDeleteBtn,
+  .role-viewer #expenseDeleteBtn{
+    pointer-events:none !important;
+    opacity:.55;
+  }
 
   /* 팀원(member): 입력·수정은 가능, 삭제와 데이터 복원은 관리자만 가능하도록 숨김 */
   .role-member [data-act="del"],
