@@ -1409,8 +1409,6 @@
   /* ============ Cloud Sync (Supabase) ============ */
   const CLOUD_URL = "https://pbeyogjjflkiwhxutpva.supabase.co";
   const CLOUD_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZXlvZ2pqZmxraXdoeHV0cHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MTkwMDQsImV4cCI6MjA5OTQ5NTAwNH0.-Tgn0xVWALZ-fsz9hI1vw6VBarhyAa_aGfkFMcK14og";
-  const CLOUD_TABLE = "scheduler_state";
-  const CLOUD_ROW_ID = "default";
   let cloudClient = null;
   try{ cloudClient = window.supabase ? window.supabase.createClient(CLOUD_URL, CLOUD_ANON_KEY) : null; }catch(e){ cloudClient = null; }
   let cloudSyncTimer = null;
@@ -1431,11 +1429,14 @@
     cloudSyncTimer = setTimeout(pushToCloud, 800);
   }
 
+  // scheduler_state 테이블은 anon 키로 직접 읽고 쓸 수 없다(회원 테이블과 동일한 방식).
+  // 반드시 로그인 세션 토큰을 넘겨서 get_scheduler_state/save_scheduler_state RPC를 통해서만
+  // 접근한다 — 저장(save)은 서버 쪽에서 열람자(viewer) 권한을 다시 한번 막는다.
   async function pushToCloud(){
-    if(!cloudClient) return;
+    if(!cloudClient || !currentUser) return;
     const payload = { events, todos, memos, expenses, notified: Array.from(notifiedSet) };
     try{
-      const { error } = await cloudClient.from(CLOUD_TABLE).upsert({ id: CLOUD_ROW_ID, data: payload, updated_at: new Date().toISOString() });
+      const { error } = await cloudClient.rpc("save_scheduler_state", { p_token: currentUser.token, p_data: payload });
       if(error) throw error;
       setSyncStatus("synced");
     }catch(e){
@@ -1444,12 +1445,12 @@
   }
 
   async function loadFromCloud(){
-    if(!cloudClient){ setSyncStatus("offline"); return; }
+    if(!cloudClient || !currentUser){ setSyncStatus("offline"); return; }
     setSyncStatus("loading");
     try{
-      const { data, error } = await cloudClient.from(CLOUD_TABLE).select("data").eq("id", CLOUD_ROW_ID).maybeSingle();
+      const { data, error } = await cloudClient.rpc("get_scheduler_state", { p_token: currentUser.token });
       if(error) throw error;
-      const cloud = data && data.data ? data.data : null;
+      const cloud = data && Object.keys(data).length ? data : null;
       const cloudHasContent = !!(cloud && (
         (cloud.events && cloud.events.length) ||
         (cloud.todos && cloud.todos.length) ||
