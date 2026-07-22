@@ -531,6 +531,88 @@
   .due-badge{font-size:11px;color:var(--text-sub);}
   .due-overdue{color:var(--danger);font-weight:700;}
 
+  /* ---------- 로그인 / 회원가입 / 아이디·비번 찾기 ---------- */
+  #authScreen{
+    position:fixed;inset:0;z-index:500;
+    background:radial-gradient(circle at 10% 0%, var(--bg-grad1), var(--bg-grad2) 60%);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    overflow-y:auto;
+  }
+  .auth-card{
+    background:var(--card);border-radius:20px;padding:32px 30px;
+    width:100%;max-width:380px;box-shadow:var(--shadow-lg);
+    animation:fadeUp .4s ease both;
+  }
+  .auth-logo{display:flex;justify-content:center;margin-bottom:16px;}
+  .auth-logo img{height:52px;width:auto;border-radius:8px;background:#fff;padding:4px 8px;}
+  .auth-title{font-size:19px;font-weight:800;text-align:center;margin:0 0 4px;letter-spacing:-.2px;}
+  .auth-sub{font-size:12.5px;color:var(--text-sub);text-align:center;margin:0 0 22px;line-height:1.5;}
+  .auth-view{display:none;}
+  .auth-view.active{display:block;}
+  .auth-links{display:flex;justify-content:center;gap:14px;margin-top:16px;font-size:12.5px;flex-wrap:wrap;}
+  .auth-links a{color:var(--text-sub);cursor:pointer;text-decoration:underline;}
+  .auth-links a:hover{color:var(--primary);}
+  .auth-error{font-size:12.5px;color:var(--danger);background:var(--danger-soft);border-radius:10px;padding:9px 12px;margin-top:12px;display:none;line-height:1.5;}
+  .auth-error.show{display:block;}
+  .auth-success{font-size:12.5px;color:var(--good);background:var(--good-soft);border-radius:10px;padding:9px 12px;margin-top:12px;display:none;line-height:1.5;}
+  .auth-success.show{display:block;}
+  .auth-hint{font-size:11px;color:var(--text-sub);margin-top:4px;}
+  .auth-hint.ok{color:var(--good);}
+  .auth-hint.err{color:var(--danger);}
+  .auth-back{font-size:12.5px;color:var(--text-sub);cursor:pointer;margin-bottom:14px;display:inline-flex;align-items:center;gap:4px;}
+  .auth-back:hover{color:var(--primary);}
+
+  /* ---------- 사용자 배지 / 관리자·로그아웃 버튼 ---------- */
+  .user-badge{
+    display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+    padding:6px 14px;background:var(--card-soft);border:1px solid var(--border);border-radius:12px;
+    min-width:0;
+  }
+  .user-badge-name{font-size:12.5px;font-weight:800;color:var(--text);white-space:nowrap;}
+  .role-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;}
+  .role-badge-admin{background:var(--danger-soft);color:var(--danger);}
+  .role-badge-member{background:var(--primary-soft);color:var(--primary);}
+  .role-badge-viewer{background:var(--warn-soft);color:var(--warn);}
+
+  /* ---------- 관리자: 회원 관리 ---------- */
+  .admin-member-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card-soft);
+    flex-wrap:wrap;
+  }
+  .admin-member-name{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;}
+  .admin-member-meta{font-size:11.5px;color:var(--text-sub);margin-top:3px;}
+  .admin-member-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .admin-member-actions select{padding:7px 8px;font-size:12px;border-radius:8px;}
+  .admin-member-actions button{
+    font-size:11.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);
+    background:var(--card);cursor:pointer;color:var(--text);
+  }
+  .admin-member-actions button[data-act="delete"]{color:var(--danger);border-color:var(--danger-soft);}
+  .admin-member-actions button:hover{background:var(--primary-soft);color:var(--primary);}
+  .admin-member-actions button[data-act="delete"]:hover{background:var(--danger-soft);color:var(--danger);}
+
+  /* ---------- 권한별 화면 제한 ---------- */
+  /* 열람자(viewer): 조회만 가능 — 입력/수정/삭제/체크 등 변경 동작을 전부 숨기거나 비활성화 */
+  .role-viewer [data-act="edit"],
+  .role-viewer [data-act="del"],
+  .role-viewer #addEventBtn,
+  .role-viewer #addExpenseBtn,
+  .role-viewer #todoAddBtn,
+  .role-viewer #memoAddBtn,
+  .role-viewer .add-inline,
+  .role-viewer #restoreBtn{display:none !important;}
+  .role-viewer .checkbox{pointer-events:none;}
+
+  /* 팀원(member): 입력·수정은 가능, 삭제와 데이터 복원은 관리자만 가능하도록 숨김 */
+  .role-member [data-act="del"],
+  .role-member #eventDeleteBtn,
+  .role-member #leaveDeleteBtn,
+  .role-member #todoModalDeleteBtn,
+  .role-member #memoModalDeleteBtn,
+  .role-member #expenseDeleteBtn,
+  .role-member #restoreBtn{display:none !important;}
+
   /* ---------- Modal ---------- */
   .modal-overlay{
     position:fixed;inset:0;background:rgba(15,17,25,.5);
@@ -730,7 +812,123 @@
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- 로그인 화면: 로그인 전에는 이 화면만 보이고, 아래 앱 내용(#appRoot)은 가려짐 -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo"><img id="authLogoImg" alt="AUM&amp;LEE WORK"></div>
+
+    <!-- 로그인 -->
+    <div class="auth-view active" id="authViewLogin">
+      <h2 class="auth-title">업무 일정 관리</h2>
+      <p class="auth-sub">팀원만 사용할 수 있는 사내 전용 시스템입니다.</p>
+      <div class="form-row">
+        <label>아이디</label>
+        <input type="text" id="loginUsername" placeholder="아이디를 입력하세요" autocomplete="username">
+      </div>
+      <div class="form-row">
+        <label>비밀번호</label>
+        <input type="password" id="loginPassword" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+      </div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="btn btn-primary" id="loginSubmitBtn" style="width:100%;margin-top:14px;">로그인</button>
+      <div class="auth-links">
+        <a id="goRegisterLink">회원가입</a>
+        <a id="goFindIdLink">아이디 찾기</a>
+        <a id="goResetPwLink">비밀번호 찾기</a>
+      </div>
+    </div>
+
+    <!-- 회원가입 (팀원 전용, 권한 선택 불가) -->
+    <div class="auth-view" id="authViewRegister">
+      <div class="auth-back" id="backFromRegister">‹ 로그인으로</div>
+      <h2 class="auth-title">회원가입</h2>
+      <p class="auth-sub">팀원(Member) 계정만 가입할 수 있습니다.</p>
+      <div class="form-row"><label>이름</label><input type="text" id="regName" placeholder="이름"></div>
+      <div class="form-row">
+        <label>내선번호 (3자리)</label>
+        <input type="text" id="regExtension" maxlength="3" inputmode="numeric" placeholder="예: 101">
+        <div class="auth-hint" id="regExtensionHint"></div>
+      </div>
+      <div class="form-row">
+        <label>입사일 (8자리, YYYYMMDD)</label>
+        <input type="text" id="regHireDate" maxlength="8" inputmode="numeric" placeholder="예: 20250101">
+      </div>
+      <div class="form-row">
+        <label>아이디</label>
+        <input type="text" id="regUsername" placeholder="사용할 아이디" autocomplete="off">
+        <div class="auth-hint" id="regUsernameHint"></div>
+      </div>
+      <div class="form-row"><label>비밀번호</label><input type="password" id="regPassword" placeholder="비밀번호" autocomplete="new-password"></div>
+      <div class="form-row"><label>비밀번호 확인</label><input type="password" id="regPasswordConfirm" placeholder="비밀번호 확인" autocomplete="new-password"></div>
+      <div class="auth-error" id="registerError"></div>
+      <div class="auth-success" id="registerSuccess"></div>
+      <button class="btn btn-primary" id="registerSubmitBtn" style="width:100%;margin-top:14px;">가입하기</button>
+    </div>
+
+    <!-- 아이디 찾기 (이름 + 입사일) -->
+    <div class="auth-view" id="authViewFindId">
+      <div class="auth-back" id="backFromFindId">‹ 로그인으로</div>
+      <h2 class="auth-title">아이디 찾기</h2>
+      <p class="auth-sub">이름과 입사일로 아이디를 확인합니다.</p>
+      <div class="form-row"><label>이름</label><input type="text" id="findIdName" placeholder="이름"></div>
+      <div class="form-row"><label>입사일 (8자리)</label><input type="text" id="findIdHireDate" maxlength="8" inputmode="numeric" placeholder="예: 20250101"></div>
+      <div class="auth-error" id="findIdError"></div>
+      <div class="auth-success" id="findIdSuccess"></div>
+      <button class="btn btn-primary" id="findIdSubmitBtn" style="width:100%;margin-top:14px;">아이디 찾기</button>
+    </div>
+
+    <!-- 비밀번호 재설정 (아이디 + 입사일) -->
+    <div class="auth-view" id="authViewResetPw">
+      <div class="auth-back" id="backFromResetPw">‹ 로그인으로</div>
+      <h2 class="auth-title">비밀번호 찾기</h2>
+      <p class="auth-sub">아이디와 입사일 확인 후 새 비밀번호로 바꿉니다.</p>
+      <div class="form-row"><label>아이디</label><input type="text" id="resetUsername" placeholder="아이디"></div>
+      <div class="form-row"><label>입사일 (8자리)</label><input type="text" id="resetHireDate" maxlength="8" inputmode="numeric" placeholder="예: 20250101"></div>
+      <div class="form-row"><label>새 비밀번호</label><input type="password" id="resetNewPassword" placeholder="새 비밀번호" autocomplete="new-password"></div>
+      <div class="auth-error" id="resetPwError"></div>
+      <div class="auth-success" id="resetPwSuccess"></div>
+      <button class="btn btn-primary" id="resetPwSubmitBtn" style="width:100%;margin-top:14px;">비밀번호 변경</button>
+    </div>
+  </div>
+</div>
+
+<!-- 최초 로그인 시 비밀번호 변경 강제 (닫기 불가) -->
+<div class="modal-overlay" id="forcePwModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2>비밀번호 변경이 필요합니다</h2>
+    </div>
+    <p style="font-size:12.5px;color:var(--text-sub);margin:-10px 0 16px;line-height:1.6;">보안을 위해 처음 로그인 시 비밀번호를 반드시 변경해야 합니다.</p>
+    <div class="form-row"><label>새 비밀번호</label><input type="password" id="forcePwNew" placeholder="새 비밀번호" autocomplete="new-password"></div>
+    <div class="form-row"><label>새 비밀번호 확인</label><input type="password" id="forcePwConfirm" placeholder="새 비밀번호 확인" autocomplete="new-password"></div>
+    <div class="auth-error" id="forcePwError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="forcePwSubmitBtn" style="width:100%;">비밀번호 변경</button>
+    </div>
+  </div>
+</div>
+
+<!-- 관리자: 회원 관리 -->
+<div class="modal-overlay" id="adminModalOverlay">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <h2>회원 관리</h2>
+    </div>
+    <div id="adminMemberList" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-soft" id="adminModalCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appRoot" style="display:none;">
 
   <!-- TOP BAR -->
   <div class="topbar">
@@ -756,6 +954,14 @@
         <button class="icon-btn" id="restoreBtn" title="JSON 복원" aria-label="JSON 복원"><span class="arrow-wide">↑</span></button>
       </div>
       <input type="file" id="restoreFile" accept="application/json" class="hidden">
+      <div class="user-badge">
+        <div class="user-badge-name" id="userBadgeName">-</div>
+        <span class="role-badge" id="userBadgeRole"></span>
+      </div>
+      <div class="action-group">
+        <button class="icon-btn" id="adminPanelBtn" title="관리자 페이지" aria-label="관리자 페이지" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+        <button class="icon-btn" id="logoutBtn" title="로그아웃" aria-label="로그아웃"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
+      </div>
     </div>
   </div>
 
@@ -1241,6 +1447,275 @@
       }
     }catch(e){
       setSyncStatus("offline");
+    }
+  }
+
+  /* ============ 로그인 / 회원가입 / 권한 ============ */
+  // 비밀번호는 여기(브라우저)에서 절대 비교하지 않는다. members 테이블은 anon 키로 직접
+  // 조회/수정이 전부 막혀 있고(REST API로 시도하면 permission denied), 아래 함수들은 모두
+  // Supabase 안에 SECURITY DEFINER로 만들어둔 저장 프로시저(RPC)를 호출할 뿐이다.
+  // 실제 비밀번호 확인/해시(crypt)는 Postgres 안에서만 이뤄진다.
+  const LS_AUTH_TOKEN = "aisch_auth_token";
+  const ROLE_LABEL = { admin:"관리자", member:"팀원", viewer:"열람자" };
+  let currentUser = null;      // {id, name, username, role, token}
+  let appStarted = false;      // startApp()이 중복 실행되지 않도록 막는 플래그
+
+  function showAuthView(viewId){
+    document.querySelectorAll(".auth-view").forEach(v=>v.classList.toggle("active", v.id===viewId));
+    document.querySelectorAll("#authScreen .auth-error, #authScreen .auth-success").forEach(el=>el.classList.remove("show"));
+  }
+  function showAuthMsg(id, msg){
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add("show");
+  }
+  document.getElementById("goRegisterLink").addEventListener("click", ()=>showAuthView("authViewRegister"));
+  document.getElementById("goFindIdLink").addEventListener("click", ()=>showAuthView("authViewFindId"));
+  document.getElementById("goResetPwLink").addEventListener("click", ()=>showAuthView("authViewResetPw"));
+  document.getElementById("backFromRegister").addEventListener("click", ()=>showAuthView("authViewLogin"));
+  document.getElementById("backFromFindId").addEventListener("click", ()=>showAuthView("authViewLogin"));
+  document.getElementById("backFromResetPw").addEventListener("click", ()=>showAuthView("authViewLogin"));
+
+  function applySession(row){
+    localStorage.setItem(LS_AUTH_TOKEN, row.token);
+    currentUser = { id: row.id, name: row.name, username: row.username, role: row.role, token: row.token };
+    enterApp();
+    if(row.must_change_password){
+      document.getElementById("forcePwModalOverlay").classList.add("open");
+    }
+  }
+
+  function enterApp(){
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("appRoot").style.display = "";
+    document.body.classList.remove("role-admin", "role-member", "role-viewer");
+    document.body.classList.add("role-" + currentUser.role);
+    document.getElementById("userBadgeName").textContent = currentUser.name;
+    const roleEl = document.getElementById("userBadgeRole");
+    roleEl.textContent = ROLE_LABEL[currentUser.role] || currentUser.role;
+    roleEl.className = "role-badge role-badge-" + currentUser.role;
+    document.getElementById("adminPanelBtn").style.display = currentUser.role === "admin" ? "" : "none";
+    if(!appStarted){ appStarted = true; startApp(); }
+  }
+
+  async function handleLogin(){
+    const username = document.getElementById("loginUsername").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    if(!username || !password){ showAuthMsg("loginError", "아이디와 비밀번호를 입력해주세요."); return; }
+    document.getElementById("loginError").classList.remove("show");
+    try{
+      const { data, error } = await cloudClient.rpc("member_login", { p_username: username, p_password: password });
+      if(error || !data || !data.length){
+        showAuthMsg("loginError", "아이디 또는 비밀번호가 올바르지 않습니다.");
+        return;
+      }
+      applySession(data[0]);
+    }catch(e){
+      showAuthMsg("loginError", "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    }
+  }
+  document.getElementById("loginSubmitBtn").addEventListener("click", handleLogin);
+  ["loginUsername","loginPassword"].forEach(id=>{
+    document.getElementById(id).addEventListener("keydown", e=>{ if(e.key==="Enter") handleLogin(); });
+  });
+
+  // 회원가입: 내선번호/아이디 실시간 중복확인
+  let extCheckTimer, userCheckTimer;
+  document.getElementById("regExtension").addEventListener("input", (e)=>{
+    e.target.value = e.target.value.replace(/[^0-9]/g,"").slice(0,3);
+    const hintEl = document.getElementById("regExtensionHint");
+    clearTimeout(extCheckTimer);
+    if(e.target.value.length !== 3){ hintEl.textContent=""; hintEl.className="auth-hint"; return; }
+    extCheckTimer = setTimeout(async ()=>{
+      const { data } = await cloudClient.rpc("check_extension_available", { p_extension: e.target.value });
+      hintEl.textContent = data ? "사용 가능한 내선번호입니다." : "이미 등록된 내선번호입니다.";
+      hintEl.className = "auth-hint " + (data ? "ok" : "err");
+    }, 400);
+  });
+  document.getElementById("regUsername").addEventListener("input", (e)=>{
+    const hintEl = document.getElementById("regUsernameHint");
+    clearTimeout(userCheckTimer);
+    if(!e.target.value.trim()){ hintEl.textContent=""; hintEl.className="auth-hint"; return; }
+    userCheckTimer = setTimeout(async ()=>{
+      const { data } = await cloudClient.rpc("check_username_available", { p_username: e.target.value.trim() });
+      hintEl.textContent = data ? "사용 가능한 아이디입니다." : "이미 사용 중인 아이디입니다.";
+      hintEl.className = "auth-hint " + (data ? "ok" : "err");
+    }, 400);
+  });
+  document.getElementById("regHireDate").addEventListener("input", (e)=>{
+    e.target.value = e.target.value.replace(/[^0-9]/g,"").slice(0,8);
+  });
+
+  document.getElementById("registerSubmitBtn").addEventListener("click", async ()=>{
+    const name = document.getElementById("regName").value.trim();
+    const extension = document.getElementById("regExtension").value.trim();
+    const hireDate = document.getElementById("regHireDate").value.trim();
+    const username = document.getElementById("regUsername").value.trim();
+    const password = document.getElementById("regPassword").value;
+    const passwordConfirm = document.getElementById("regPasswordConfirm").value;
+    document.getElementById("registerError").classList.remove("show");
+    document.getElementById("registerSuccess").classList.remove("show");
+
+    if(!name || !extension || !hireDate || !username || !password){ showAuthMsg("registerError","모든 항목을 입력해주세요."); return; }
+    if(extension.length !== 3){ showAuthMsg("registerError","내선번호는 숫자 3자리여야 합니다."); return; }
+    if(hireDate.length !== 8){ showAuthMsg("registerError","입사일은 8자리 숫자(YYYYMMDD)여야 합니다."); return; }
+    if(password.length < 4){ showAuthMsg("registerError","비밀번호는 4자 이상 입력해주세요."); return; }
+    if(password !== passwordConfirm){ showAuthMsg("registerError","비밀번호가 서로 다릅니다."); return; }
+
+    try{
+      const { error } = await cloudClient.rpc("register_member", {
+        p_name: name, p_extension: extension, p_hire_date: hireDate, p_username: username, p_password: password
+      });
+      if(error){ showAuthMsg("registerError", error.message || "가입에 실패했습니다."); return; }
+    }catch(e){
+      showAuthMsg("registerError", "가입 중 오류가 발생했습니다.");
+      return;
+    }
+    showAuthMsg("registerSuccess", "가입이 완료되었습니다. 로그인해주세요.");
+    ["regName","regExtension","regHireDate","regUsername","regPassword","regPasswordConfirm"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("regExtensionHint").textContent = "";
+    document.getElementById("regUsernameHint").textContent = "";
+    setTimeout(()=>{
+      showAuthView("authViewLogin");
+      document.getElementById("loginUsername").value = username;
+    }, 1200);
+  });
+
+  document.getElementById("findIdHireDate").addEventListener("input", (e)=>{ e.target.value = e.target.value.replace(/[^0-9]/g,"").slice(0,8); });
+  document.getElementById("findIdSubmitBtn").addEventListener("click", async ()=>{
+    const name = document.getElementById("findIdName").value.trim();
+    const hireDate = document.getElementById("findIdHireDate").value.trim();
+    document.getElementById("findIdError").classList.remove("show");
+    document.getElementById("findIdSuccess").classList.remove("show");
+    if(!name || !hireDate){ showAuthMsg("findIdError","이름과 입사일을 입력해주세요."); return; }
+    const { data, error } = await cloudClient.rpc("find_username", { p_name: name, p_hire_date: hireDate });
+    if(error || !data){ showAuthMsg("findIdError","일치하는 회원 정보를 찾을 수 없습니다."); return; }
+    showAuthMsg("findIdSuccess", `아이디: ${data}`);
+  });
+
+  document.getElementById("resetHireDate").addEventListener("input", (e)=>{ e.target.value = e.target.value.replace(/[^0-9]/g,"").slice(0,8); });
+  document.getElementById("resetPwSubmitBtn").addEventListener("click", async ()=>{
+    const username = document.getElementById("resetUsername").value.trim();
+    const hireDate = document.getElementById("resetHireDate").value.trim();
+    const newPassword = document.getElementById("resetNewPassword").value;
+    document.getElementById("resetPwError").classList.remove("show");
+    document.getElementById("resetPwSuccess").classList.remove("show");
+    if(!username || !hireDate || !newPassword){ showAuthMsg("resetPwError","모든 항목을 입력해주세요."); return; }
+    if(newPassword.length < 4){ showAuthMsg("resetPwError","비밀번호는 4자 이상 입력해주세요."); return; }
+    const { data, error } = await cloudClient.rpc("reset_password_with_hire_date", {
+      p_username: username, p_hire_date: hireDate, p_new_password: newPassword
+    });
+    if(error || !data){ showAuthMsg("resetPwError","아이디 또는 입사일이 일치하지 않습니다."); return; }
+    showAuthMsg("resetPwSuccess", "비밀번호가 변경되었습니다. 로그인해주세요.");
+    setTimeout(()=>{
+      showAuthView("authViewLogin");
+      document.getElementById("loginUsername").value = username;
+    }, 1200);
+  });
+
+  // 최초 로그인 시 비밀번호 변경(닫기 불가) — 유효한 로그인 세션이 있어야만 성공한다.
+  document.getElementById("forcePwSubmitBtn").addEventListener("click", async ()=>{
+    const pw1 = document.getElementById("forcePwNew").value;
+    const pw2 = document.getElementById("forcePwConfirm").value;
+    const errEl = document.getElementById("forcePwError");
+    errEl.classList.remove("show");
+    if(!pw1 || pw1.length < 4){ errEl.textContent="비밀번호는 4자 이상 입력해주세요."; errEl.classList.add("show"); return; }
+    if(pw1 !== pw2){ errEl.textContent="비밀번호가 서로 다릅니다."; errEl.classList.add("show"); return; }
+    const { data, error } = await cloudClient.rpc("force_change_password", { p_token: currentUser.token, p_new_password: pw1 });
+    if(error || !data){ errEl.textContent="비밀번호 변경에 실패했습니다. 다시 로그인해주세요."; errEl.classList.add("show"); return; }
+    document.getElementById("forcePwModalOverlay").classList.remove("open");
+    document.getElementById("forcePwNew").value = "";
+    document.getElementById("forcePwConfirm").value = "";
+    toast("비밀번호가 변경되었습니다.", "success");
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+    if(currentUser && currentUser.token){
+      try{ await cloudClient.rpc("member_logout", { p_token: currentUser.token }); }catch(e){}
+    }
+    localStorage.removeItem(LS_AUTH_TOKEN);
+    location.reload();
+  });
+
+  // 관리자: 회원 관리
+  document.getElementById("adminPanelBtn").addEventListener("click", openAdminPanel);
+  document.getElementById("adminModalCloseBtn").addEventListener("click", ()=>{
+    document.getElementById("adminModalOverlay").classList.remove("open");
+  });
+  async function openAdminPanel(){
+    const { data, error } = await cloudClient.rpc("admin_list_members", { p_token: currentUser.token });
+    if(error){ toast("회원 목록을 불러오지 못했습니다.", "error"); return; }
+    renderAdminMemberList(data || []);
+    document.getElementById("adminModalOverlay").classList.add("open");
+  }
+  function renderAdminMemberList(list){
+    const el = document.getElementById("adminMemberList");
+    el.innerHTML = "";
+    list.forEach(m=>{
+      const row = document.createElement("div");
+      row.className = "admin-member-row";
+      const hireLabel = m.hire_date && m.hire_date.length===8
+        ? `${m.hire_date.slice(0,4)}-${m.hire_date.slice(4,6)}-${m.hire_date.slice(6,8)}` : m.hire_date;
+      row.innerHTML = `
+        <div>
+          <div class="admin-member-name">${escapeHtml(m.name)}
+            <span class="role-badge role-badge-${m.role}">${ROLE_LABEL[m.role]||m.role}</span>
+            ${m.must_change_password ? '<span class="tag tag-recur">비번변경 대기</span>' : ''}
+          </div>
+          <div class="admin-member-meta">내선 ${escapeHtml(m.extension)} · 입사일 ${escapeHtml(hireLabel)} · ID: ${escapeHtml(m.username)}</div>
+        </div>
+        <div class="admin-member-actions">
+          <select data-act="role">
+            <option value="admin" ${m.role==="admin"?"selected":""}>관리자</option>
+            <option value="member" ${m.role==="member"?"selected":""}>팀원</option>
+            <option value="viewer" ${m.role==="viewer"?"selected":""}>열람자</option>
+          </select>
+          <button data-act="resetpw">비번초기화</button>
+          <button data-act="delete">삭제</button>
+        </div>`;
+      row.querySelector('[data-act="role"]').addEventListener("change", async (e)=>{
+        const { error } = await cloudClient.rpc("admin_update_role", { p_token: currentUser.token, p_member_id: m.id, p_new_role: e.target.value });
+        if(error){ toast("권한 변경에 실패했습니다.", "error"); return; }
+        toast(`${m.name}님의 권한을 ${ROLE_LABEL[e.target.value]}(으)로 변경했습니다.`, "success");
+        openAdminPanel();
+      });
+      row.querySelector('[data-act="resetpw"]').addEventListener("click", async ()=>{
+        if(!confirm(`${m.name}님의 비밀번호를 기본값(0000)으로 초기화할까요?\n다음 로그인 시 비밀번호 변경이 강제됩니다.`)) return;
+        const { error } = await cloudClient.rpc("admin_reset_member_password", { p_token: currentUser.token, p_member_id: m.id, p_new_password: "0000" });
+        if(error){ toast("초기화에 실패했습니다.", "error"); return; }
+        toast("비밀번호를 초기화했습니다.", "success");
+        openAdminPanel();
+      });
+      row.querySelector('[data-act="delete"]').addEventListener("click", async ()=>{
+        if(!confirm(`${m.name}님 계정을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+        const { error } = await cloudClient.rpc("admin_delete_member", { p_token: currentUser.token, p_member_id: m.id });
+        if(error){ toast("삭제에 실패했습니다.", "error"); return; }
+        toast("계정을 삭제했습니다.", "info");
+        openAdminPanel();
+      });
+      el.appendChild(row);
+    });
+  }
+
+  // 페이지를 열었을 때: 저장된 세션이 있으면 자동 로그인, 없으면 로그인 화면 표시
+  async function initAuth(){
+    const logoSrc = document.querySelector(".brand-logo") ? document.querySelector(".brand-logo").src : "";
+    document.getElementById("authLogoImg").src = logoSrc;
+
+    const token = localStorage.getItem(LS_AUTH_TOKEN);
+    if(!token){ return; }
+    try{
+      const { data, error } = await cloudClient.rpc("session_check", { p_token: token });
+      if(error || !data || !data.length){ localStorage.removeItem(LS_AUTH_TOKEN); return; }
+      const row = data[0];
+      currentUser = { id: row.id, name: row.name, username: row.username, role: row.role, token };
+      enterApp();
+      if(row.must_change_password){
+        document.getElementById("forcePwModalOverlay").classList.add("open");
+      }
+    }catch(e){
+      // 오프라인 등으로 세션 확인에 실패하면 안전하게 로그인 화면으로 되돌린다.
+      localStorage.removeItem(LS_AUTH_TOKEN);
     }
   }
 
@@ -2774,46 +3249,52 @@
     if(migrated) saveEvents();
   }
   /* ============ Init ============ */
-  // .modal has a CSS transform (its open/close animation), which per spec makes it
-  // the containing block for any position:fixed descendant. Move these popups to be
-  // direct children of <body> so their fixed coordinates resolve against the viewport,
-  // not the modal box.
-  document.body.appendChild(document.getElementById("eventDatePopup"));
-  document.body.appendChild(document.getElementById("timeDropdown"));
+  // 로그인에 성공한 뒤(enterApp)에만 한 번 실행된다 — 로그인 전에는 일정 데이터를
+  // 불러오거나 화면을 그리지 않는다(불특정 다수가 로그인 없이 데이터를 보는 것을 막기 위함).
+  function startApp(){
+    // .modal has a CSS transform (its open/close animation), which per spec makes it
+    // the containing block for any position:fixed descendant. Move these popups to be
+    // direct children of <body> so their fixed coordinates resolve against the viewport,
+    // not the modal box.
+    document.body.appendChild(document.getElementById("eventDatePopup"));
+    document.body.appendChild(document.getElementById("timeDropdown"));
 
-  document.getElementById("todoDueInput").value = todayStr();
+    document.getElementById("todoDueInput").value = todayStr();
 
-  function renderAllViews(){
-    renderDow();
-    renderCalendar();
-    renderDayEvents();
-    renderTodos();
-    renderMemos();
-    renderExpenses();
-    renderAISummary();
-    renderTaxNews();
-    checkUpcomingNotifications();
+    function renderAllViews(){
+      renderDow();
+      renderCalendar();
+      renderDayEvents();
+      renderTodos();
+      renderMemos();
+      renderExpenses();
+      renderAISummary();
+      renderTaxNews();
+      checkUpcomingNotifications();
+    }
+
+    loadFromCloud().finally(()=>{
+      seedTaxEvents();
+      renderAllViews();
+
+      // Refresh AI summary + calendar periodically to catch date rollover
+      setInterval(()=>{
+        renderAISummary();
+      }, 60000);
+
+      let lastDayCheck = todayStr();
+      setInterval(()=>{
+        const cur = todayStr();
+        if(cur !== lastDayCheck){
+          lastDayCheck = cur;
+          renderCalendar();
+          renderAISummary();
+        }
+      }, 30000);
+    });
   }
 
-  loadFromCloud().finally(()=>{
-    seedTaxEvents();
-    renderAllViews();
-
-    // Refresh AI summary + calendar periodically to catch date rollover
-    setInterval(()=>{
-      renderAISummary();
-    }, 60000);
-
-    let lastDayCheck = todayStr();
-    setInterval(()=>{
-      const cur = todayStr();
-      if(cur !== lastDayCheck){
-        lastDayCheck = cur;
-        renderCalendar();
-        renderAISummary();
-      }
-    }, 30000);
-  });
+  initAuth();
 
 })();
 </script>
