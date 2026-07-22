@@ -149,6 +149,17 @@
   }
   .icon-btn:hover{transform:translateY(-2px);background:var(--card-soft);}
   .icon-btn:active{transform:translateY(0px) scale(.96);}
+  .logout-btn{
+    width:auto;height:42px;padding:0 14px;border-radius:12px;
+    border:1px solid var(--border);background:var(--card);
+    display:flex;align-items:center;gap:6px;
+    cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text-sub);white-space:nowrap;
+    box-shadow:var(--shadow);
+    transition:transform .15s ease, background .2s, color .2s;
+  }
+  .logout-btn:hover{transform:translateY(-2px);background:var(--danger-soft);color:var(--danger);}
+  .logout-btn:active{transform:translateY(0px) scale(.96);}
+  .logout-btn svg{width:15px;height:15px;flex-shrink:0;}
 
   .action-group{
     display:flex;align-items:center;gap:1px;
@@ -960,7 +971,7 @@
       </div>
       <div class="action-group">
         <button class="icon-btn" id="adminPanelBtn" title="관리자 페이지" aria-label="관리자 페이지" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
-        <button class="icon-btn" id="logoutBtn" title="로그아웃" aria-label="로그아웃"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
+        <button class="logout-btn" id="logoutBtn" title="로그아웃" aria-label="로그아웃">로그아웃<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
       </div>
     </div>
   </div>
