@@ -582,6 +582,10 @@
   .role-badge-admin{background:var(--danger-soft);color:var(--danger);}
   .role-badge-member{background:var(--primary-soft);color:var(--primary);}
   .role-badge-viewer{background:var(--warn-soft);color:var(--warn);}
+  .status-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;}
+  .status-badge-pending{background:var(--warn-soft);color:var(--warn);}
+  .status-badge-approved{background:var(--good-soft);color:var(--good);}
+  .status-badge-rejected{background:var(--danger-soft);color:var(--danger);}
 
   /* ---------- 관리자: 회원 관리 ---------- */
   .admin-member-row{
@@ -589,6 +593,7 @@
     padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card-soft);
     flex-wrap:wrap;
   }
+  .admin-member-row.pending{border-color:var(--warn);background:var(--warn-soft);}
   .admin-member-name{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;}
   .admin-member-meta{font-size:11.5px;color:var(--text-sub);margin-top:3px;}
   .admin-member-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
@@ -597,6 +602,10 @@
     font-size:11.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);
     background:var(--card);cursor:pointer;color:var(--text);
   }
+  .admin-member-actions button[data-act="approve"]{color:var(--good);border-color:var(--good-soft);}
+  .admin-member-actions button[data-act="approve"]:hover{background:var(--good-soft);}
+  .admin-member-actions button[data-act="reject"]{color:var(--danger);border-color:var(--danger-soft);}
+  .admin-member-actions button[data-act="reject"]:hover{background:var(--danger-soft);}
   .admin-member-actions button[data-act="delete"]{color:var(--danger);border-color:var(--danger-soft);}
   .admin-member-actions button:hover{background:var(--primary-soft);color:var(--primary);}
   .admin-member-actions button[data-act="delete"]:hover{background:var(--danger-soft);color:var(--danger);}
@@ -1471,6 +1480,7 @@
   // 실제 비밀번호 확인/해시(crypt)는 Postgres 안에서만 이뤄진다.
   const LS_AUTH_TOKEN = "aisch_auth_token";
   const ROLE_LABEL = { admin:"Admin", member:"Member", viewer:"Viewer" };
+  const STATUS_LABEL = { pending:"승인 대기", approved:"승인됨", rejected:"거절됨" };
   let currentUser = null;      // {id, name, username, role, token}
   let appStarted = false;      // startApp()이 중복 실행되지 않도록 막는 플래그
 
@@ -1519,7 +1529,11 @@
     document.getElementById("loginError").classList.remove("show");
     try{
       const { data, error } = await cloudClient.rpc("member_login", { p_username: username, p_password: password });
-      if(error || !data || !data.length){
+      if(error){
+        showAuthMsg("loginError", error.message || "로그인 중 오류가 발생했습니다.");
+        return;
+      }
+      if(!data || !data.length){
         showAuthMsg("loginError", "아이디 또는 비밀번호가 올바르지 않습니다.");
         return;
       }
@@ -1585,7 +1599,7 @@
       showAuthMsg("registerError", "가입 중 오류가 발생했습니다.");
       return;
     }
-    showAuthMsg("registerSuccess", "가입이 완료되었습니다. 로그인해주세요.");
+    showAuthMsg("registerSuccess", "가입 신청이 완료되었습니다. 관리자 승인 후 로그인하실 수 있습니다.");
     ["regName","regExtension","regHireDate","regUsername","regPassword","regPasswordConfirm"].forEach(id=>document.getElementById(id).value="");
     document.getElementById("regExtensionHint").textContent = "";
     document.getElementById("regUsernameHint").textContent = "";
@@ -1667,37 +1681,58 @@
     el.innerHTML = "";
     list.forEach(m=>{
       const row = document.createElement("div");
-      row.className = "admin-member-row";
+      const isPending = m.status === "pending";
+      row.className = "admin-member-row" + (isPending ? " pending" : "");
       const hireLabel = m.hire_date && m.hire_date.length===8
         ? `${m.hire_date.slice(0,4)}-${m.hire_date.slice(4,6)}-${m.hire_date.slice(6,8)}` : m.hire_date;
-      row.innerHTML = `
-        <div>
-          <div class="admin-member-name">${escapeHtml(m.name)}
-            <span class="role-badge role-badge-${m.role}">${ROLE_LABEL[m.role]||m.role}</span>
-            ${m.must_change_password ? '<span class="tag tag-recur">비번변경 대기</span>' : ''}
-          </div>
-          <div class="admin-member-meta">내선 ${escapeHtml(m.extension)} · 입사일 ${escapeHtml(hireLabel)} · ID: ${escapeHtml(m.username)}</div>
-        </div>
-        <div class="admin-member-actions">
-          <select data-act="role">
+      const actionsHtml = isPending
+        ? `<button data-act="approve">승인</button><button data-act="reject">거절</button><button data-act="delete">삭제</button>`
+        : `<select data-act="role">
             <option value="admin" ${m.role==="admin"?"selected":""}>관리자</option>
             <option value="member" ${m.role==="member"?"selected":""}>팀원</option>
             <option value="viewer" ${m.role==="viewer"?"selected":""}>열람자</option>
           </select>
           <button data-act="resetpw">비번초기화</button>
-          <button data-act="delete">삭제</button>
-        </div>`;
-      row.querySelector('[data-act="role"]').addEventListener("change", async (e)=>{
+          ${m.status==="rejected" ? '<button data-act="approve">승인</button>' : ''}
+          <button data-act="delete">삭제</button>`;
+      row.innerHTML = `
+        <div>
+          <div class="admin-member-name">${escapeHtml(m.name)}
+            <span class="role-badge role-badge-${m.role}">${ROLE_LABEL[m.role]||m.role}</span>
+            <span class="status-badge status-badge-${m.status}">${STATUS_LABEL[m.status]||m.status}</span>
+            ${m.must_change_password ? '<span class="tag tag-recur">비번변경 대기</span>' : ''}
+          </div>
+          <div class="admin-member-meta">내선 ${escapeHtml(m.extension)} · 입사일 ${escapeHtml(hireLabel)} · ID: ${escapeHtml(m.username)}</div>
+        </div>
+        <div class="admin-member-actions">${actionsHtml}</div>`;
+      const roleSel = row.querySelector('[data-act="role"]');
+      if(roleSel) roleSel.addEventListener("change", async (e)=>{
         const { error } = await cloudClient.rpc("admin_update_role", { p_token: currentUser.token, p_member_id: m.id, p_new_role: e.target.value });
         if(error){ toast("권한 변경에 실패했습니다.", "error"); return; }
         toast(`${m.name}님의 권한을 ${ROLE_LABEL[e.target.value]}(으)로 변경했습니다.`, "success");
         openAdminPanel();
       });
-      row.querySelector('[data-act="resetpw"]').addEventListener("click", async ()=>{
+      const resetBtn = row.querySelector('[data-act="resetpw"]');
+      if(resetBtn) resetBtn.addEventListener("click", async ()=>{
         if(!confirm(`${m.name}님의 비밀번호를 기본값(0000)으로 초기화할까요?\n다음 로그인 시 비밀번호 변경이 강제됩니다.`)) return;
         const { error } = await cloudClient.rpc("admin_reset_member_password", { p_token: currentUser.token, p_member_id: m.id, p_new_password: "0000" });
         if(error){ toast("초기화에 실패했습니다.", "error"); return; }
         toast("비밀번호를 초기화했습니다.", "success");
+        openAdminPanel();
+      });
+      const approveBtn = row.querySelector('[data-act="approve"]');
+      if(approveBtn) approveBtn.addEventListener("click", async ()=>{
+        const { error } = await cloudClient.rpc("admin_approve_member", { p_token: currentUser.token, p_member_id: m.id });
+        if(error){ toast("승인에 실패했습니다.", "error"); return; }
+        toast(`${m.name}님의 가입을 승인했습니다.`, "success");
+        openAdminPanel();
+      });
+      const rejectBtn = row.querySelector('[data-act="reject"]');
+      if(rejectBtn) rejectBtn.addEventListener("click", async ()=>{
+        if(!confirm(`${m.name}님의 가입을 거절할까요?`)) return;
+        const { error } = await cloudClient.rpc("admin_reject_member", { p_token: currentUser.token, p_member_id: m.id });
+        if(error){ toast("거절 처리에 실패했습니다.", "error"); return; }
+        toast(`${m.name}님의 가입을 거절했습니다.`, "info");
         openAdminPanel();
       });
       row.querySelector('[data-act="delete"]').addEventListener("click", async ()=>{
