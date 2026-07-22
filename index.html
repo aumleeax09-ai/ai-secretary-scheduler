@@ -604,20 +604,13 @@
   .admin-member-actions button[data-act="delete"]:hover{background:var(--danger-soft);color:var(--danger);}
 
   /* ---------- 권한별 화면 제한 ---------- */
-  /* 열람자(viewer): 등록/수정 화면(모달)은 열어서 볼 수 있지만, 그 안에서 입력·저장·삭제는
-     전부 막는다 — 달력 이동, 필터, 모달 열기/닫기 같은 "탐색"은 그대로 허용한다. */
+  /* 열람자(viewer): 등록/수정 화면(모달)은 자유롭게 열어보고 입력칸·드롭다운·날짜선택 등
+     기능도 눌러볼 수 있다 — 다만 실제로 데이터가 바뀌는 순간(저장/추가/삭제/체크)만 막는다.
+     (저장 버튼을 눌러도 서버(save_scheduler_state RPC)에서 열람자 권한을 다시 한번 막아준다.) */
   .role-viewer #restoreBtn{display:none !important;}
   .role-viewer .checkbox{pointer-events:none;}
-  .role-viewer .add-inline input,
-  .role-viewer .add-inline select,
   .role-viewer .add-inline button,
-  .role-viewer .modal input,
-  .role-viewer .modal select,
-  .role-viewer .modal textarea,
   .role-viewer .modal .btn-primary,
-  .role-viewer .leave-type-btn,
-  .role-viewer .leave-half-btn,
-  .role-viewer .lr-day,
   .role-viewer [data-act="del"],
   .role-viewer #eventDeleteBtn,
   .role-viewer #leaveDeleteBtn,
