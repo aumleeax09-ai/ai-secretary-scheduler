@@ -370,7 +370,7 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     font-weight:600;
   }
-  .cal-event-pill.important{background:var(--danger-soft);color:var(--danger);}
+  .cal-event-pill.important{border-left:2px solid var(--danger);font-weight:800;}
   .cal-more{font-size:11px;color:var(--text-sub);padding-left:4px;}
 
   /* ---------- Mini calendars (each fills exactly one grid cell) ---------- */
@@ -2107,7 +2107,7 @@
       evs.slice(0,maxShow).forEach(ev=>{
         // 연차/반차/반반차는 종류별로 다른 색으로 표시 (연차:초록, 반차:주황, 반반차:보라)
         const leaveCls = ev.leaveType==="연차"?"leave-full":ev.leaveType==="반차"?"leave-half":ev.leaveType==="반반차"?"leave-quarter":"";
-        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""} ${leaveCls}">${escapeHtml(ev.title)}</div>`;
+        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""} ${leaveCls}">${ev.important?"⭐ ":""}${escapeHtml(ev.title)}</div>`;
       });
       if(evs.length > maxShow){
         pillsHtml += `<div class="cal-more">+${evs.length-maxShow}개 더보기</div>`;
