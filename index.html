@@ -376,23 +376,23 @@
   }
   .cal-events{display:flex;flex-direction:column;gap:2px;overflow:hidden;}
   .cal-event-pill{
-    font-size:10px;padding:2px 5px;border-radius:5px;
-    background:var(--primary-soft);color:var(--primary);
+    font-size:10px;padding:1px 2px;border-radius:0;
+    background:transparent;color:var(--primary);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     font-weight:600;
   }
   .cal-event-pill.important{font-weight:800;}
-  .cal-event-pill.pill-c-indigo{background:var(--primary-soft);color:var(--primary);}
-  .cal-event-pill.pill-c-blue{background:#e0f2fe;color:#0284c7;}
-  html[data-theme="dark"] .cal-event-pill.pill-c-blue{background:#123246;color:#38bdf8;}
-  .cal-event-pill.pill-c-green{background:var(--good-soft);color:var(--good);}
-  .cal-event-pill.pill-c-amber{background:var(--warn-soft);color:var(--warn);}
-  .cal-event-pill.pill-c-red{background:var(--danger-soft);color:var(--danger);}
-  .cal-event-pill.pill-c-pink{background:#fce7f3;color:#db2777;}
-  html[data-theme="dark"] .cal-event-pill.pill-c-pink{background:#3a1930;color:#f472b6;}
-  .cal-event-pill.pill-c-purple{background:#f3e8ff;color:#9333ea;}
-  html[data-theme="dark"] .cal-event-pill.pill-c-purple{background:#2e1065;color:#c084fc;}
-  .cal-event-pill.pill-c-gray{background:var(--card-soft);color:var(--text-sub);}
+  .cal-event-pill.pill-c-indigo{color:var(--primary);}
+  .cal-event-pill.pill-c-blue{color:#0284c7;}
+  html[data-theme="dark"] .cal-event-pill.pill-c-blue{color:#38bdf8;}
+  .cal-event-pill.pill-c-green{color:var(--good);}
+  .cal-event-pill.pill-c-amber{color:var(--warn);}
+  .cal-event-pill.pill-c-red{color:var(--danger);}
+  .cal-event-pill.pill-c-pink{color:#db2777;}
+  html[data-theme="dark"] .cal-event-pill.pill-c-pink{color:#f472b6;}
+  .cal-event-pill.pill-c-purple{color:#9333ea;}
+  html[data-theme="dark"] .cal-event-pill.pill-c-purple{color:#c084fc;}
+  .cal-event-pill.pill-c-gray{color:var(--text-sub);}
   .color-swatches{display:flex;gap:8px;flex-wrap:wrap;padding-top:2px;}
   .color-swatch{
     width:24px;height:24px;border-radius:50%;border:2px solid transparent;
@@ -541,7 +541,7 @@
   .tag-exp-etc{background:#f1f5f9;color:#64748b;}
   html[data-theme="dark"] .tag-exp-etc{background:#252831;color:#94a3b8;}
   .expense-amount{font-weight:800;color:var(--text);white-space:nowrap;}
-  .cal-event-pill.expense{background:var(--good-soft);color:var(--good);}
+  .cal-event-pill.expense{color:var(--good);}
 
   /* ---------- Expense list refinements ---------- */
   #expenseList .item{padding:14px 16px;align-items:center;gap:14px;}
@@ -802,12 +802,12 @@
   html[data-theme="dark"] .tag-leave-half{background:#3a2410;color:#fb923c;}
   .tag-leave-quarter{background:#f3e8ff;color:#9333ea;}
   html[data-theme="dark"] .tag-leave-quarter{background:#2e1065;color:#c084fc;}
-  .cal-event-pill.leave-full{background:#d1fae5;color:#059669;}
-  html[data-theme="dark"] .cal-event-pill.leave-full{background:#0f3d2e;color:#34d399;}
-  .cal-event-pill.leave-half{background:#ffedd5;color:#c2410c;}
-  html[data-theme="dark"] .cal-event-pill.leave-half{background:#3a2410;color:#fb923c;}
-  .cal-event-pill.leave-quarter{background:#f3e8ff;color:#9333ea;}
-  html[data-theme="dark"] .cal-event-pill.leave-quarter{background:#2e1065;color:#c084fc;}
+  .cal-event-pill.leave-full{color:#059669;}
+  html[data-theme="dark"] .cal-event-pill.leave-full{color:#34d399;}
+  .cal-event-pill.leave-half{color:#c2410c;}
+  html[data-theme="dark"] .cal-event-pill.leave-half{color:#fb923c;}
+  .cal-event-pill.leave-quarter{color:#9333ea;}
+  html[data-theme="dark"] .cal-event-pill.leave-quarter{color:#c084fc;}
 
   /* ---------- Custom time picker (30-minute step scroll list) ---------- */
   .select-wrap{position:relative;}
