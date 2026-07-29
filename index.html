@@ -3608,7 +3608,7 @@
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
 
-    const BLACKLIST = ["소계","기수금액","기타수입","수금예상액","조사일","통장","총액","총잔액","합계","구분","지출항목","비고","예상잔고"];
+    const BLACKLIST = ["소계","기수금액","기타수입","수금예상액","조사일","통장","총액","총잔액","합계","구분","지출항목","비고","예상잔고","항목","용역명","기준일"];
     function compact(s){ return String(s||"").replace(/\s+/g, ""); }
 
     let year = new Date().getFullYear();
@@ -3622,43 +3622,85 @@
       }
     }
 
+    // 지출 탭(구분/지출항목/지출예상액/비고)과 수금 탭(구분/항목/기준일/용역명/금액/VAT)은
+    // 열 구성이 다르므로, 헤더 행 내용을 보고 어떤 서식인지 먼저 판별한다.
+    let format = "expense";
+    for(let i=0; i<Math.min(rows.length,6); i++){
+      const rowStr = compact((rows[i]||[]).map(c=>String(c||"")).join(""));
+      if(rowStr.includes("지출예상액")){ format = "expense"; break; }
+      if(rowStr.includes("기준일") && rowStr.includes("용역명")){ format = "income"; break; }
+    }
+
     const results = [];
     for(let i=4; i<rows.length; i++){
-      let [a,b,c,d] = rows[i] || [];
-      if(typeof a === "string") a = a.trim();
-      if(typeof b === "string") b = b.trim();
-      if(typeof d === "string") d = d.trim();
+      const row = rows[i] || [];
+      if(format === "income"){
+        let [, b, c, d, e] = row;
+        if(typeof b === "string") b = b.trim();
+        if(typeof c === "string") c = c.trim();
+        if(typeof d === "string") d = d.trim();
 
-      let groupConsumed = false;
-      if(typeof a === "string"){
-        const gm = a.match(/^(\d{1,2})\/(\d{1,2})/);
-        if(gm){ month = parseInt(gm[1],10); groupConsumed = true; }
+        if(typeof c === "string"){
+          const gm = c.match(/^(\d{1,2})\/(\d{1,2})/);
+          if(gm) month = parseInt(gm[1],10);
+        }
+
+        const itemName = d;
+        if(!itemName) continue;
+        if(typeof e !== "number") continue;
+        if(BLACKLIST.some(k => compact(itemName).includes(k))) continue;
+
+        const note = b ? String(b).trim().slice(0,60) : "";
+        const title = `[수금] ${itemName}${note ? ` (${note})` : ""}`;
+        const mm = String(month).padStart(2,"0");
+
+        results.push({
+          date: `${year}-${mm}-01`,
+          title,
+          note,
+          amountWon: Math.round(e * 10000),
+          category: "기타",
+          type: "income",
+          selected: true,
+        });
+      } else {
+        let [a,b,c,d] = row;
+        if(typeof a === "string") a = a.trim();
+        if(typeof b === "string") b = b.trim();
+        if(typeof d === "string") d = d.trim();
+
+        let groupConsumed = false;
+        if(typeof a === "string"){
+          const gm = a.match(/^(\d{1,2})\/(\d{1,2})/);
+          if(gm){ month = parseInt(gm[1],10); groupConsumed = true; }
+        }
+
+        let itemName = null;
+        if(!groupConsumed && a && !b) itemName = a;
+        else if(b) itemName = b;
+
+        if(!itemName) continue;
+        if(typeof c !== "number") continue;
+        if(BLACKLIST.some(k => compact(itemName).includes(k))) continue;
+
+        const dm = itemName.match(/\((\d{1,2})일\)/);
+        const day = dm ? parseInt(dm[1],10) : 1;
+        const cleanTitle = itemName.replace(/\(\d{1,2}일\)/, "").trim();
+        const note = d ? String(d).trim().slice(0,60) : "";
+        const title = note ? `${cleanTitle} (${note})` : cleanTitle;
+        const mm = String(month).padStart(2,"0");
+        const dd = String(day).padStart(2,"0");
+
+        results.push({
+          date: `${year}-${mm}-${dd}`,
+          title,
+          note,
+          amountWon: Math.round(c * 10000),
+          category: guessExpenseCategory(title),
+          type: "expense",
+          selected: true,
+        });
       }
-
-      let itemName = null;
-      if(!groupConsumed && a && !b) itemName = a;
-      else if(b) itemName = b;
-
-      if(!itemName) continue;
-      if(typeof c !== "number") continue;
-      if(BLACKLIST.some(k => compact(itemName).includes(k))) continue;
-
-      const dm = itemName.match(/\((\d{1,2})일\)/);
-      const day = dm ? parseInt(dm[1],10) : 1;
-      const cleanTitle = itemName.replace(/\(\d{1,2}일\)/, "").trim();
-      const note = d ? String(d).trim().slice(0,60) : "";
-      const title = note ? `${cleanTitle} (${note})` : cleanTitle;
-      const mm = String(month).padStart(2,"0");
-      const dd = String(day).padStart(2,"0");
-
-      results.push({
-        date: `${year}-${mm}-${dd}`,
-        title,
-        note,
-        amountWon: Math.round(c * 10000),
-        category: guessExpenseCategory(title),
-        selected: true,
-      });
     }
     return results;
   }
@@ -3725,16 +3767,22 @@
   document.getElementById("excelImportConfirmBtn").addEventListener("click", ()=>{
     const chosen = excelImportCandidates.filter(x=>x.selected);
     if(!chosen.length){ toast("가져올 항목을 선택해주세요.", "error"); return; }
+    let expenseCount = 0;
     chosen.forEach(it=>{
       events.push({
         id: uid(), title: it.title, date: it.date, category: "업무",
         start: "", end: "", location: "", desc: it.note,
-        recur: "none", recurEnd: "", important: false, importantMark: "star", color: "indigo",
+        recur: "none", recurEnd: "", important: false, importantMark: "star",
+        color: it.type === "income" ? "green" : "indigo",
       });
-      expenses.push({
-        id: uid(), title: it.title, amount: it.amountWon, category: it.category,
-        date: it.date, recur: "none", memo: it.note,
-      });
+      // 수금(수입) 항목은 지출 관리 데이터 모델과 성격이 달라(돈이 들어오는 것) 지출 내역에는 넣지 않고, 일정에만 반영한다.
+      if(it.type !== "income"){
+        expenses.push({
+          id: uid(), title: it.title, amount: it.amountWon, category: it.category,
+          date: it.date, recur: "none", memo: it.note,
+        });
+        expenseCount++;
+      }
     });
     saveEvents();
     saveExpenses();
@@ -3742,7 +3790,7 @@
     renderDayEvents();
     renderExpenses();
     renderAISummary();
-    toast(`${chosen.length}건을 일정과 지출에 등록했어요.`, "success");
+    toast(`일정 ${chosen.length}건, 지출 ${expenseCount}건을 등록했어요.`, "success");
     excelImportCandidates = [];
     document.getElementById("excelImportPreview").style.display = "none";
     document.getElementById("excelImportFile").value = "";
