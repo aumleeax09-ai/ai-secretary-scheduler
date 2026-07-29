@@ -1195,6 +1195,17 @@
             </div>
           </div>
           <div id="excelImportList" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding:8px 10px;background:var(--card-soft);border-radius:8px;font-size:12.5px;">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="checkbox" id="excelImportToIncome" checked> 수금관리 반영
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="checkbox" id="excelImportToExpense" checked> 지출관리 반영
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="checkbox" id="excelImportToCalendar" checked> 캘린더 반영(수금/지출)
+            </label>
+          </div>
           <div class="modal-actions" style="margin-top:12px;">
             <button class="btn btn-soft" id="excelImportCancelBtn">취소</button>
             <button class="btn btn-primary" id="excelImportConfirmBtn">선택 항목 가져오기</button>
@@ -4070,26 +4081,49 @@
   document.getElementById("excelImportConfirmBtn").addEventListener("click", ()=>{
     const chosen = excelImportCandidates.filter(x=>x.selected);
     if(!chosen.length){ toast("가져올 항목을 선택해주세요.", "error"); return; }
-    let expenseCount = 0, incomeCount = 0;
+    const toIncome = document.getElementById("excelImportToIncome").checked;
+    const toExpense = document.getElementById("excelImportToExpense").checked;
+    const toCalendar = document.getElementById("excelImportToCalendar").checked;
+    if(!toIncome && !toExpense && !toCalendar){
+      toast("반영할 항목(수금관리/지출관리/캘린더)을 하나 이상 선택해주세요.", "error");
+      return;
+    }
+    let expenseCount = 0, incomeCount = 0, eventCount = 0;
     chosen.forEach(it=>{
-      events.push({
-        id: uid(), title: it.title, date: it.date, category: "업무",
-        start: "", end: "", location: "", desc: it.note,
-        recur: "none", recurEnd: "", important: false, importantMark: "star",
-        color: it.type === "income" ? "green" : "indigo",
-      });
       if(it.type === "income"){
-        incomes.push({
-          id: uid(), title: it.title, amount: it.amountWon, category: it.category,
-          date: it.date, recur: "none", memo: it.note,
-        });
-        incomeCount++;
+        if(toCalendar){
+          events.push({
+            id: uid(), title: it.title, date: it.date, category: "업무",
+            start: "", end: "", location: "", desc: it.note,
+            recur: "none", recurEnd: "", important: false, importantMark: "star",
+            color: "green",
+          });
+          eventCount++;
+        }
+        if(toIncome){
+          incomes.push({
+            id: uid(), title: it.title, amount: it.amountWon, category: it.category,
+            date: it.date, recur: "none", memo: it.note,
+          });
+          incomeCount++;
+        }
       } else {
-        expenses.push({
-          id: uid(), title: it.title, amount: it.amountWon, category: it.category,
-          date: it.date, recur: "none", memo: it.note,
-        });
-        expenseCount++;
+        if(toCalendar){
+          events.push({
+            id: uid(), title: it.title, date: it.date, category: "업무",
+            start: "", end: "", location: "", desc: it.note,
+            recur: "none", recurEnd: "", important: false, importantMark: "star",
+            color: "indigo",
+          });
+          eventCount++;
+        }
+        if(toExpense){
+          expenses.push({
+            id: uid(), title: it.title, amount: it.amountWon, category: it.category,
+            date: it.date, recur: "none", memo: it.note,
+          });
+          expenseCount++;
+        }
       }
     });
     saveEvents();
@@ -4100,7 +4134,7 @@
     renderExpenses();
     renderIncomes();
     renderAISummary();
-    toast(`일정 ${chosen.length}건, 지출 ${expenseCount}건, 수금 ${incomeCount}건을 등록했어요.`, "success");
+    toast(`일정 ${eventCount}건, 지출 ${expenseCount}건, 수금 ${incomeCount}건을 등록했어요.`, "success");
     excelImportCandidates = [];
     document.getElementById("excelImportPreview").style.display = "none";
     document.getElementById("excelImportFile").value = "";
