@@ -363,6 +363,11 @@
   .cal-daynum{font-size:12px;font-weight:700;}
   .cal-day.sun .cal-daynum{color:var(--danger);}
   .cal-day.sat .cal-daynum{color:var(--primary);}
+  .cal-day.holiday .cal-daynum{color:var(--danger);}
+  .cal-holiday-label{
+    font-size:9.5px;font-weight:700;color:var(--danger);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0 2px;
+  }
   .cal-events{display:flex;flex-direction:column;gap:2px;overflow:hidden;}
   .cal-event-pill{
     font-size:10px;padding:2px 5px;border-radius:5px;
@@ -1829,6 +1834,21 @@
   let selectedDate = fmtDate(new Date());
   let todoFilterMode = "all";
   let expenseCategoryFilterMode = "all";
+  const holidaysByYear = {}; // { 2026: { "2026-01-01": "신정" } }
+
+  function ensureHolidaysLoaded(year){
+    if(holidaysByYear[year]) return;
+    holidaysByYear[year] = {}; // placeholder so we don't re-fetch while loading
+    fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/KR`)
+      .then(r=>r.json())
+      .then(list=>{
+        const map = {};
+        (list||[]).forEach(h=>{ map[h.date] = h.localName; });
+        holidaysByYear[year] = map;
+        if(year === viewYear) renderCalendar();
+      })
+      .catch(()=>{ /* 오프라인이면 그냥 공휴일 표시 없이 진행 */ });
+  }
 
   const today = new Date();
   viewYear = today.getFullYear();
@@ -2107,6 +2127,9 @@
       (expByDate[o.dateStr] = expByDate[o.dateStr] || []).push(o.ex);
     });
 
+    ensureHolidaysLoaded(viewYear);
+    const holidayMap = holidaysByYear[viewYear] || {};
+
     const trailingCount = (7 - (startOffset + daysInMonth) % 7) % 7;
     let prevY = viewYear, prevM = viewMonth - 1;
     if(prevM < 0){ prevM = 11; prevY--; }
@@ -2139,8 +2162,9 @@
     for(let day=1; day<=daysInMonth; day++){
       const dateStr = fmtDate(new Date(viewYear, viewMonth, day));
       const dow = new Date(viewYear, viewMonth, day).getDay();
+      const holidayName = holidayMap[dateStr];
       const cell = document.createElement("div");
-      cell.className = "cal-day" + (dow===0?" sun":dow===6?" sat":"") + (dateStr===todayString?" today":"") + (dateStr===selectedDate?" selected":"");
+      cell.className = "cal-day" + (dow===0?" sun":dow===6?" sat":"") + (holidayName?" holiday":"") + (dateStr===todayString?" today":"") + (dateStr===selectedDate?" selected":"");
       cell.dataset.date = dateStr;
       cell.tabIndex = 0;
       cell.setAttribute("role", "button");
@@ -2166,7 +2190,8 @@
         pillsHtml += `<div class="cal-more">지출 +${exps.length-2}건</div>`;
       }
 
-      cell.innerHTML = `<div class="cal-daynum">${day}</div><div class="cal-events">${pillsHtml}</div>`;
+      const holidayHtml = holidayName ? `<div class="cal-holiday-label" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : "";
+      cell.innerHTML = `<div class="cal-daynum">${day}</div>${holidayHtml}<div class="cal-events">${pillsHtml}</div>`;
       const selectThisDay = ()=>{
         selectedDate = dateStr;
         renderCalendar();
