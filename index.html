@@ -370,7 +370,25 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     font-weight:600;
   }
-  .cal-event-pill.important{border-left:2px solid var(--danger);font-weight:800;}
+  .cal-event-pill.important{font-weight:800;}
+  .cal-event-pill.pill-c-indigo{background:var(--primary-soft);color:var(--primary);}
+  .cal-event-pill.pill-c-blue{background:#e0f2fe;color:#0284c7;}
+  html[data-theme="dark"] .cal-event-pill.pill-c-blue{background:#123246;color:#38bdf8;}
+  .cal-event-pill.pill-c-green{background:var(--good-soft);color:var(--good);}
+  .cal-event-pill.pill-c-amber{background:var(--warn-soft);color:var(--warn);}
+  .cal-event-pill.pill-c-red{background:var(--danger-soft);color:var(--danger);}
+  .cal-event-pill.pill-c-pink{background:#fce7f3;color:#db2777;}
+  html[data-theme="dark"] .cal-event-pill.pill-c-pink{background:#3a1930;color:#f472b6;}
+  .cal-event-pill.pill-c-purple{background:#f3e8ff;color:#9333ea;}
+  html[data-theme="dark"] .cal-event-pill.pill-c-purple{background:#2e1065;color:#c084fc;}
+  .cal-event-pill.pill-c-gray{background:var(--card-soft);color:var(--text-sub);}
+  .color-swatches{display:flex;gap:8px;flex-wrap:wrap;padding-top:2px;}
+  .color-swatch{
+    width:24px;height:24px;border-radius:50%;border:2px solid transparent;
+    cursor:pointer;padding:0;transition:transform .12s ease,border-color .12s ease;
+  }
+  .color-swatch:hover{transform:scale(1.12);}
+  .color-swatch.active{border-color:var(--text);}
   .cal-more{font-size:11px;color:var(--text-sub);padding-left:4px;}
 
   /* ---------- Mini calendars (each fills exactly one grid cell) ---------- */
@@ -1187,6 +1205,19 @@
           <option value="중요">중요</option>
           <option value="기타">기타</option>
         </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.8.7-1.4 1.4-1.4H16c3.3 0 6-2.7 6-6 0-4.9-4.5-8-10-8Z"/></svg>달력 표시 색상</label>
+      <div class="color-swatches" id="eventColorSwatches">
+        <button type="button" class="color-swatch active" data-color="indigo" style="background:#6366f1;" title="인디고"></button>
+        <button type="button" class="color-swatch" data-color="blue" style="background:#0284c7;" title="블루"></button>
+        <button type="button" class="color-swatch" data-color="green" style="background:#10b981;" title="그린"></button>
+        <button type="button" class="color-swatch" data-color="amber" style="background:#f59e0b;" title="앰버"></button>
+        <button type="button" class="color-swatch" data-color="red" style="background:#ef4444;" title="레드"></button>
+        <button type="button" class="color-swatch" data-color="pink" style="background:#db2777;" title="핑크"></button>
+        <button type="button" class="color-swatch" data-color="purple" style="background:#9333ea;" title="퍼플"></button>
+        <button type="button" class="color-swatch" data-color="gray" style="background:#6b7280;" title="그레이"></button>
       </div>
     </div>
     <div class="form-grid2">
@@ -2122,7 +2153,8 @@
       evs.slice(0,maxShow).forEach(ev=>{
         // 연차/반차/반반차는 종류별로 다른 색으로 표시 (연차:초록, 반차:주황, 반반차:보라)
         const leaveCls = ev.leaveType==="연차"?"leave-full":ev.leaveType==="반차"?"leave-half":ev.leaveType==="반반차"?"leave-quarter":"";
-        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""} ${leaveCls}">${importantMarkPrefix(ev)}${escapeHtml(ev.title)}</div>`;
+        const colorCls = leaveCls ? "" : "pill-c-" + (ev.color || "indigo");
+        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""} ${leaveCls} ${colorCls}">${importantMarkPrefix(ev)}${escapeHtml(ev.title)}</div>`;
       });
       if(evs.length > maxShow){
         pillsHtml += `<div class="cal-more">+${evs.length-maxShow}개 더보기</div>`;
@@ -2292,6 +2324,7 @@
     document.getElementById("eventImportant").checked = ev ? !!ev.important : false;
     setImportantMark(ev && ev.importantMark === "check" ? "check" : "star");
     document.getElementById("eventImportantMarkToggle").style.display = (ev && ev.important) ? "flex" : "none";
+    setEventColor(ev && ev.color ? ev.color : "indigo");
     document.getElementById("eventDeleteBtn").classList.toggle("hidden", !ev);
     document.getElementById("eventModalOverlay").classList.add("open");
     setTimeout(()=>document.getElementById("eventTitle").focus(), 60);
@@ -2314,6 +2347,15 @@
   });
   document.querySelectorAll("#eventImportantMarkToggle .mark-btn").forEach(btn=>{
     btn.addEventListener("click", ()=> setImportantMark(btn.dataset.mark));
+  });
+
+  function setEventColor(color){
+    document.querySelectorAll("#eventColorSwatches .color-swatch").forEach(sw=>{
+      sw.classList.toggle("active", sw.dataset.color === color);
+    });
+  }
+  document.querySelectorAll("#eventColorSwatches .color-swatch").forEach(sw=>{
+    sw.addEventListener("click", ()=> setEventColor(sw.dataset.color));
   });
   document.getElementById("eventModalOverlay").addEventListener("click", (e)=>{
     if(e.target.id === "eventModalOverlay") closeEventModal();
@@ -2405,6 +2447,7 @@
       recurEnd: document.getElementById("eventRecurEnd").value,
       important: document.getElementById("eventImportant").checked,
       importantMark: document.querySelector("#eventImportantMarkToggle .mark-btn.active")?.dataset.mark || "star",
+      color: document.querySelector("#eventColorSwatches .color-swatch.active")?.dataset.color || "indigo",
     };
 
     if(id){
