@@ -236,6 +236,12 @@
   .ai-title{font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px;}
   .ai-dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px var(--good-soft);}
   .ai-refresh{font-size:11px;color:var(--text-sub);cursor:pointer;text-decoration:underline;}
+  .weather-chip{
+    display:none;align-items:center;gap:4px;
+    background:var(--card-soft);border:1px solid var(--border);
+    border-radius:20px;padding:2px 10px;
+    font-size:12px;font-weight:700;color:var(--text-sub);
+  }
   .ai-text{font-size:13.5px;line-height:1.75;color:var(--text);white-space:pre-line;}
   .ai-text b{color:var(--primary);}
   .ai-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
@@ -998,7 +1004,7 @@
   <div class="ai-panel" id="aiPanel">
     <div class="ai-content">
       <div class="ai-header">
-        <div class="ai-title"><span class="ai-dot"></span> 일정 브리핑</div>
+        <div class="ai-title"><span class="ai-dot"></span> 일정 브리핑 <span class="weather-chip" id="weatherChip"></span></div>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="ai-style-toggle">
             <button class="ai-style-btn" id="aiStyleC" title="상단 배지 + 2단 그리드">▭</button>
@@ -1866,6 +1872,44 @@
   }
   setInterval(tickClock, 1000);
   tickClock();
+
+  /* ============ Weather ============ */
+  function weatherIcon(code){
+    if(code===0) return {icon:"☀️", label:"맑음"};
+    if(code===1 || code===2) return {icon:"🌤️", label:"대체로 맑음"};
+    if(code===3) return {icon:"☁️", label:"흐림"};
+    if(code===45 || code===48) return {icon:"🌫️", label:"안개"};
+    if(code>=51 && code<=57) return {icon:"🌦️", label:"이슬비"};
+    if(code>=61 && code<=67) return {icon:"🌧️", label:"비"};
+    if(code>=80 && code<=82) return {icon:"🌦️", label:"소나기"};
+    if(code===71 || code===73 || code===75 || code===77 || code===85 || code===86) return {icon:"🌨️", label:"눈"};
+    if(code>=95) return {icon:"⛈️", label:"뇌우"};
+    return {icon:"🌡️", label:""};
+  }
+  function loadWeather(){
+    const chip = document.getElementById("weatherChip");
+    function fetchWeather(lat, lon){
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia%2FSeoul`)
+        .then(r=>r.json())
+        .then(data=>{
+          const cur = data && data.current;
+          if(!cur || typeof cur.temperature_2m !== "number") return;
+          const w = weatherIcon(cur.weather_code);
+          chip.textContent = `${w.icon} ${Math.round(cur.temperature_2m)}°C ${w.label}`;
+          chip.style.display = "inline-flex";
+        })
+        .catch(()=>{});
+    }
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => fetchWeather(37.5665, 126.9780),
+        { timeout: 4000 }
+      );
+    } else {
+      fetchWeather(37.5665, 126.9780);
+    }
+  }
 
   /* ============ Theme ============ */
   function applyTheme(t){
@@ -3315,6 +3359,7 @@
     document.body.appendChild(document.getElementById("timeDropdown"));
 
     document.getElementById("todoDueInput").value = todayStr();
+    loadWeather();
 
     function renderAllViews(){
       renderDow();
