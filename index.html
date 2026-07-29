@@ -3608,7 +3608,7 @@
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
 
-    const BLACKLIST = ["소계","기수금액","기타수입","수금예상액","조사일","통장","총액","총잔액","합계","구분","지출항목","비고","예상잔고","항목","용역명","기준일"];
+    const BLACKLIST = ["소계","기수금액","기타수입","수금예상액","조사일","통장","총액","총잔액","합계","구분","지출항목","비고","예상잔고"];
     function compact(s){ return String(s||"").replace(/\s+/g, ""); }
 
     let year = new Date().getFullYear();
