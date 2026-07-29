@@ -686,6 +686,13 @@
     border-radius:12px;padding:11px 14px;
   }
   .form-check svg{color:var(--warn);flex-shrink:0;}
+  .mark-toggle{display:flex;gap:4px;margin-left:auto;}
+  .mark-btn{
+    font-size:13px;font-weight:700;padding:4px 11px;border-radius:20px;
+    border:1px solid var(--border);background:var(--card);color:var(--text-sub);
+    cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+  }
+  .mark-btn.active{background:var(--warn);color:#fff;border-color:var(--warn);}
   .form-check input{width:auto;accent-color:var(--primary);}
   .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:22px;}
   .modal-actions .btn{padding:10px 18px;}
@@ -1223,6 +1230,10 @@
       <input type="checkbox" id="eventImportant">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01Z"/></svg>
       <label for="eventImportant" style="margin:0;">중요 일정으로 표시</label>
+      <div class="mark-toggle" id="eventImportantMarkToggle" style="display:none;">
+        <button type="button" class="mark-btn active" data-mark="star">★</button>
+        <button type="button" class="mark-btn" data-mark="check">✔</button>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-danger hidden" id="eventDeleteBtn">삭제</button>
@@ -1841,6 +1852,10 @@
     d.textContent = str==null? "" : String(str);
     return d.innerHTML;
   }
+  function importantMarkPrefix(ev){
+    if(!ev || !ev.important) return "";
+    return (ev.importantMark === "check" ? "✔" : "★") + " ";
+  }
 
   function fmtWon(n){
     return ((Number(n)||0) / 100000000).toFixed(2) + "억";
@@ -2107,7 +2122,7 @@
       evs.slice(0,maxShow).forEach(ev=>{
         // 연차/반차/반반차는 종류별로 다른 색으로 표시 (연차:초록, 반차:주황, 반반차:보라)
         const leaveCls = ev.leaveType==="연차"?"leave-full":ev.leaveType==="반차"?"leave-half":ev.leaveType==="반반차"?"leave-quarter":"";
-        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""} ${leaveCls}">${ev.important?"⭐ ":""}${escapeHtml(ev.title)}</div>`;
+        pillsHtml += `<div class="cal-event-pill ${ev.important?"important":""} ${leaveCls}">${importantMarkPrefix(ev)}${escapeHtml(ev.title)}</div>`;
       });
       if(evs.length > maxShow){
         pillsHtml += `<div class="cal-more">+${evs.length-maxShow}개 더보기</div>`;
@@ -2238,7 +2253,7 @@
       const timeStr = ev.start ? (ev.start + (ev.end? " ~ "+ev.end : "")) : "종일";
       item.innerHTML = `
         <div class="item-body">
-          <div class="item-title">${ev.important?"⭐ ":""}${escapeHtml(ev.title)}</div>
+          <div class="item-title">${importantMarkPrefix(ev)}${escapeHtml(ev.title)}</div>
           <div class="item-meta">
             <span>${timeStr}</span>
             <span class="tag ${catTag}">${escapeHtml(catLabel)}</span>
@@ -2275,6 +2290,8 @@
     document.getElementById("eventRecur").value = ev ? (ev.recur||"none") : "none";
     document.getElementById("eventRecurEnd").value = ev ? (ev.recurEnd||"") : "";
     document.getElementById("eventImportant").checked = ev ? !!ev.important : false;
+    setImportantMark(ev && ev.importantMark === "check" ? "check" : "star");
+    document.getElementById("eventImportantMarkToggle").style.display = (ev && ev.important) ? "flex" : "none";
     document.getElementById("eventDeleteBtn").classList.toggle("hidden", !ev);
     document.getElementById("eventModalOverlay").classList.add("open");
     setTimeout(()=>document.getElementById("eventTitle").focus(), 60);
@@ -2286,6 +2303,18 @@
   }
   document.getElementById("addEventBtn").addEventListener("click", ()=>openEventModal(null));
   document.getElementById("eventCancelBtn").addEventListener("click", closeEventModal);
+
+  function setImportantMark(mark){
+    document.querySelectorAll("#eventImportantMarkToggle .mark-btn").forEach(btn=>{
+      btn.classList.toggle("active", btn.dataset.mark === mark);
+    });
+  }
+  document.getElementById("eventImportant").addEventListener("change", (e)=>{
+    document.getElementById("eventImportantMarkToggle").style.display = e.target.checked ? "flex" : "none";
+  });
+  document.querySelectorAll("#eventImportantMarkToggle .mark-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=> setImportantMark(btn.dataset.mark));
+  });
   document.getElementById("eventModalOverlay").addEventListener("click", (e)=>{
     if(e.target.id === "eventModalOverlay") closeEventModal();
   });
@@ -2375,6 +2404,7 @@
       recur: document.getElementById("eventRecur").value,
       recurEnd: document.getElementById("eventRecurEnd").value,
       important: document.getElementById("eventImportant").checked,
+      importantMark: document.querySelector("#eventImportantMarkToggle .mark-btn.active")?.dataset.mark || "star",
     };
 
     if(id){
