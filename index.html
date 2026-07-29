@@ -3873,16 +3873,19 @@
     if(/용역|감리|건설사업관리|신축공사|개선사업|정비사업|사업관리|공사/.test(text)) return "용역비";
     return "기타";
   }
-  function parseExcelFundingSchedule(workbook){
-    const activeIdx = (workbook.Workbook && workbook.Workbook.WBView && workbook.Workbook.WBView[0] && typeof workbook.Workbook.WBView[0].activeTab === "number")
-      ? workbook.Workbook.WBView[0].activeTab : 0;
-    const sheetName = workbook.SheetNames[activeIdx] || workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+  const EXCEL_IMPORT_BLACKLIST = ["소계","기수금액","기타수입","수금예상액","조사일","통장","총액","총잔액","합계","구분","지출항목","비고","예상잔고"];
+  function excelImportCompact(s){ return String(s||"").replace(/\s+/g, ""); }
 
-    const BLACKLIST = ["소계","기수금액","기타수입","수금예상액","조사일","통장","총액","총잔액","합계","구분","지출항목","비고","예상잔고"];
-    function compact(s){ return String(s||"").replace(/\s+/g, ""); }
+  function detectExcelSheetFormat(rows){
+    for(let i=0; i<Math.min(rows.length,6); i++){
+      const rowStr = excelImportCompact((rows[i]||[]).map(c=>String(c||"")).join(""));
+      if(rowStr.includes("지출예상액")) return "expense";
+      if(rowStr.includes("기준일") && rowStr.includes("용역명")) return "income";
+    }
+    return null;
+  }
 
+  function detectExcelYearMonth(rows){
     let year = new Date().getFullYear();
     let month = new Date().getMonth() + 1;
     for(let i=0; i<Math.min(rows.length,6); i++){
@@ -3893,16 +3896,14 @@
         }
       }
     }
+    return { year, month };
+  }
 
-    // 지출 탭(구분/지출항목/지출예상액/비고)과 수금 탭(구분/항목/기준일/용역명/금액/VAT)은
-    // 열 구성이 다르므로, 헤더 행 내용을 보고 어떤 서식인지 먼저 판별한다.
-    let format = "expense";
-    for(let i=0; i<Math.min(rows.length,6); i++){
-      const rowStr = compact((rows[i]||[]).map(c=>String(c||"")).join(""));
-      if(rowStr.includes("지출예상액")){ format = "expense"; break; }
-      if(rowStr.includes("기준일") && rowStr.includes("용역명")){ format = "income"; break; }
-    }
-
+  // 지출 탭(구분/지출항목/지출예상액/비고)과 수금 탭(구분/항목/기준일/용역명/금액/VAT)은
+  // 열 구성이 다르므로, 서식(format)에 맞춰 각각 다른 열에서 항목명/금액을 읽는다.
+  function parseExcelSheetRows(rows, format, year, month){
+    const BLACKLIST = EXCEL_IMPORT_BLACKLIST;
+    const compact = excelImportCompact;
     const results = [];
     for(let i=4; i<rows.length; i++){
       const row = rows[i] || [];
@@ -3972,6 +3973,36 @@
           type: "expense",
           selected: true,
         });
+      }
+    }
+    return results;
+  }
+
+  // 현재 활성화된 탭(지출 또는 수금)을 기준으로 가져오되, 같은 파일 안에 반대쪽 서식(지출↔수금)의
+  // 시트가 있으면 함께 찾아서 한 번에 가져온다 — 지출/수금 관리 둘 다 같은 업로드로 채워지도록.
+  function parseExcelFundingSchedule(workbook){
+    const activeIdx = (workbook.Workbook && workbook.Workbook.WBView && workbook.Workbook.WBView[0] && typeof workbook.Workbook.WBView[0].activeTab === "number")
+      ? workbook.Workbook.WBView[0].activeTab : 0;
+    const activeSheetName = workbook.SheetNames[activeIdx] || workbook.SheetNames[0];
+
+    function getRows(sheetName){
+      return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, raw: true, defval: null });
+    }
+
+    const activeRows = getRows(activeSheetName);
+    const activeFormat = detectExcelSheetFormat(activeRows) || "expense";
+    const activeYm = detectExcelYearMonth(activeRows);
+    let results = parseExcelSheetRows(activeRows, activeFormat, activeYm.year, activeYm.month);
+
+    const wantFormat = activeFormat === "income" ? "expense" : "income";
+    for(const name of workbook.SheetNames){
+      if(name === activeSheetName) continue;
+      const rows = getRows(name);
+      const fmt = detectExcelSheetFormat(rows);
+      if(fmt === wantFormat){
+        const ym = detectExcelYearMonth(rows);
+        results = results.concat(parseExcelSheetRows(rows, fmt, ym.year, ym.month));
+        break;
       }
     }
     return results;
