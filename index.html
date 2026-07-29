@@ -500,10 +500,6 @@
   .item-meta{font-size:11px;color:var(--text-sub);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
   .item-location-link{color:var(--text-sub);text-decoration:none;}
   .item-location-link:hover{color:var(--primary);text-decoration:underline;}
-  .item-map-preview{margin-top:4px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
-  .item-map-preview iframe{width:100%;height:110px;border:0;display:block;}
-  .map-preview{margin-top:8px;border-radius:10px;overflow:hidden;border:1px solid var(--border);}
-  .map-preview iframe{width:100%;height:140px;border:0;display:block;}
 
   /* ---------- Memo text readability ---------- */
   #memoList .item{padding:16px 20px;}
@@ -1255,9 +1251,6 @@
       <div style="display:flex;gap:8px;">
         <input type="text" id="eventLocation" placeholder="예: 강남역 2번 출구" style="flex:1;">
         <button type="button" class="btn btn-soft btn-sm" id="eventMapBtn" style="white-space:nowrap;">지도에서 보기</button>
-      </div>
-      <div class="map-preview" id="eventMapPreview" style="display:none;">
-        <iframe id="eventMapPreviewFrame" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
     <div class="form-row">
@@ -2333,7 +2326,7 @@
             ${ev.recur && ev.recur!=="none" ? `<span class="tag tag-recur">🔁 ${recurLabel(ev.recur)}</span>` : ""}
             ${ev.weekendAdjust ? `<span class="tag tag-recur">📅 주말→평일 조정</span>` : ""}
           </div>
-          ${ev.location ? `<div class="item-meta"><a href="https://map.kakao.com/link/search/${encodeURIComponent(ev.location)}" target="_blank" rel="noopener" class="item-location-link">📍 ${escapeHtml(ev.location)}</a></div><div class="item-map-preview"><iframe src="https://map.kakao.com/?q=${encodeURIComponent(ev.location)}" referrerpolicy="no-referrer-when-downgrade"></iframe></div>` : ""}
+          ${ev.location ? `<div class="item-meta"><a href="https://map.kakao.com/link/search/${encodeURIComponent(ev.location)}" target="_blank" rel="noopener" class="item-location-link">📍 ${escapeHtml(ev.location)}</a></div>` : ""}
           ${ev.desc ? `<div class="item-meta">${escapeHtml(ev.desc)}</div>` : ""}
         </div>
         <div class="item-actions">
@@ -2361,7 +2354,6 @@
     setTimeFieldValue("eventStart", ev ? (ev.start||"") : "");
     setTimeFieldValue("eventEnd", ev ? (ev.end||"") : "");
     document.getElementById("eventLocation").value = ev ? (ev.location||"") : "";
-    updateEventMapPreview(ev ? (ev.location||"") : "");
     document.getElementById("eventDesc").value = ev ? (ev.desc||"") : "";
     document.getElementById("eventRecur").value = ev ? (ev.recur||"none") : "none";
     document.getElementById("eventRecurEnd").value = ev ? (ev.recurEnd||"") : "";
@@ -2385,18 +2377,6 @@
     if(!loc){ toast("장소를 입력해주세요.", "error"); return; }
     window.open(`https://map.kakao.com/link/search/${encodeURIComponent(loc)}`, "_blank", "noopener");
   });
-  function updateEventMapPreview(loc){
-    const box = document.getElementById("eventMapPreview");
-    const frame = document.getElementById("eventMapPreviewFrame");
-    if(loc){
-      frame.src = `https://map.kakao.com/?q=${encodeURIComponent(loc)}`;
-      box.style.display = "block";
-    } else {
-      frame.src = "";
-      box.style.display = "none";
-    }
-  }
-  document.getElementById("eventLocation").addEventListener("blur", (e)=> updateEventMapPreview(e.target.value.trim()));
 
   function setImportantMark(mark){
     document.querySelectorAll("#eventImportantMarkToggle .mark-btn").forEach(btn=>{
