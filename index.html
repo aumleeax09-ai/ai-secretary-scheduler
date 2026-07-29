@@ -542,17 +542,27 @@
   html[data-theme="dark"] .tag-exp-etc{background:#252831;color:#94a3b8;}
   .expense-amount{font-weight:800;color:var(--text);white-space:nowrap;}
   .cal-event-pill.expense{color:var(--good);}
+  .income-amount{font-weight:800;color:var(--good);white-space:nowrap;}
+  .cal-event-pill.income{color:var(--primary);}
+  .tag-inc-service{background:#dbeafe;color:#2563eb;}
+  html[data-theme="dark"] .tag-inc-service{background:#152238;color:#60a5fa;}
+  .tag-inc-salary{background:#ede9fe;color:#7c3aed;}
+  html[data-theme="dark"] .tag-inc-salary{background:#2a2140;color:#c4b5fd;}
+  .tag-inc-etc2{background:#d1fae5;color:#059669;}
+  html[data-theme="dark"] .tag-inc-etc2{background:#0f3d2e;color:#34d399;}
+  .tag-inc-etc{background:#f1f5f9;color:#64748b;}
+  html[data-theme="dark"] .tag-inc-etc{background:#252831;color:#94a3b8;}
 
-  /* ---------- Expense list refinements ---------- */
-  #expenseList .item{padding:14px 16px;align-items:center;gap:14px;}
-  #expenseList .item-title{font-size:13.5px;font-weight:600;}
-  #expenseList .item-meta{margin-top:4px;gap:8px;}
-  #expenseList .tag{padding:3px 9px;}
-  #expenseList .expense-amount{
+  /* ---------- Expense/Income list refinements ---------- */
+  #expenseList .item, #incomeList .item{padding:14px 16px;align-items:center;gap:14px;}
+  #expenseList .item-title, #incomeList .item-title{font-size:13.5px;font-weight:600;}
+  #expenseList .item-meta, #incomeList .item-meta{margin-top:4px;gap:8px;}
+  #expenseList .tag, #incomeList .tag{padding:3px 9px;}
+  #expenseList .expense-amount, #incomeList .income-amount{
     font-size:15.5px;font-weight:700;letter-spacing:-.1px;
     font-variant-numeric:tabular-nums;
   }
-  #expenseList .item-actions{gap:2px;margin-left:2px;padding-left:12px;border-left:1px solid var(--border);}
+  #expenseList .item-actions, #incomeList .item-actions{gap:2px;margin-left:2px;padding-left:12px;border-left:1px solid var(--border);}
 
   .item-actions{display:flex;gap:4px;flex-shrink:0;}
   .item-actions button{
@@ -663,7 +673,8 @@
   .role-viewer #leaveDeleteBtn,
   .role-viewer #todoModalDeleteBtn,
   .role-viewer #memoModalDeleteBtn,
-  .role-viewer #expenseDeleteBtn{
+  .role-viewer #expenseDeleteBtn,
+  .role-viewer #incomeDeleteBtn{
     pointer-events:none !important;
     opacity:.55;
   }
@@ -675,6 +686,7 @@
   .role-member #todoModalDeleteBtn,
   .role-member #memoModalDeleteBtn,
   .role-member #expenseDeleteBtn,
+  .role-member #incomeDeleteBtn,
   .role-member #restoreBtn{display:none !important;}
 
   /* ---------- Modal ---------- */
@@ -1200,9 +1212,31 @@
         <option value="기타">기타</option>
       </select>
       <button class="btn btn-primary btn-sm" id="addExpenseBtn">+ 지출 추가</button>
+      <button class="btn btn-primary btn-sm" id="addIncomeBtn">+ 수금 추가</button>
     </div>
     <div class="ai-chips" id="expenseBreakdown" style="margin-bottom:10px;"></div>
     <div class="list" id="expenseList" style="max-height:none;"></div>
+  </div>
+
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title">
+      <span style="display:flex;align-items:center;gap:8px;">
+        📥 월별 수금 관리
+        <span class="section-subtitle" id="incomeMonthLabel">-</span>
+      </span>
+      <span class="badge" id="incomeTotalBadge">0원</span>
+    </div>
+    <div class="toolbar">
+      <select id="incomeCategoryFilter">
+        <option value="all">전체 카테고리</option>
+        <option value="용역비">용역비</option>
+        <option value="급여회수">급여회수</option>
+        <option value="기타수입">기타수입</option>
+        <option value="기타">기타</option>
+      </select>
+    </div>
+    <div class="ai-chips" id="incomeBreakdown" style="margin-bottom:10px;"></div>
+    <div class="list" id="incomeList" style="max-height:none;"></div>
   </div>
 
   <footer class="app-footer">업무 일정 관리 · 모든 데이터는 이 기기와 클라우드에 자동 저장됩니다.</footer>
@@ -1491,6 +1525,55 @@
   </div>
 </div>
 
+<!-- INCOME(수금) ADD/EDIT MODAL -->
+<div class="modal-overlay" id="incomeModalOverlay">
+  <div class="modal">
+    <h2 id="incomeModalTitle">수금 추가</h2>
+    <input type="hidden" id="incomeId">
+    <div class="form-row">
+      <label>항목명</label>
+      <input type="text" id="incomeTitle" placeholder="예: 설계용역비">
+    </div>
+    <div class="form-grid2">
+      <div class="form-row">
+        <label>금액(원)</label>
+        <input type="text" inputmode="numeric" id="incomeAmount" placeholder="예: 500,000">
+      </div>
+      <div class="form-row">
+        <label>카테고리</label>
+        <select id="incomeCategory">
+          <option value="용역비">용역비</option>
+          <option value="급여회수">급여회수</option>
+          <option value="기타수입">기타수입</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid2">
+      <div class="form-row">
+        <label>수금일</label>
+        <input type="date" id="incomeDate">
+      </div>
+      <div class="form-row">
+        <label>반복</label>
+        <select id="incomeRecur">
+          <option value="none">이번 달만</option>
+          <option value="monthly">매월 반복</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>메모</label>
+      <input type="text" id="incomeMemo" placeholder="상세 내용 (선택)">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger hidden" id="incomeDeleteBtn">삭제</button>
+      <button class="btn btn-soft" id="incomeCancelBtn">취소</button>
+      <button class="btn btn-primary" id="incomeSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1506,6 +1589,7 @@
   const LS_THEME  = "aisch_theme";
   const LS_NOTIFIED = "aisch_notified";
   const LS_EXPENSES = "aisch_expenses";
+  const LS_INCOMES = "aisch_incomes";
 
   /* ============ Cloud Sync (Supabase) ============ */
   const CLOUD_URL = "https://pbeyogjjflkiwhxutpva.supabase.co";
@@ -1535,7 +1619,7 @@
   // 접근한다 — 저장(save)은 서버 쪽에서 열람자(viewer) 권한을 다시 한번 막는다.
   async function pushToCloud(){
     if(!cloudClient || !currentUser) return;
-    const payload = { events, todos, memos, expenses, notified: Array.from(notifiedSet) };
+    const payload = { events, todos, memos, expenses, incomes, notified: Array.from(notifiedSet) };
     try{
       const { error } = await cloudClient.rpc("save_scheduler_state", { p_token: currentUser.token, p_data: payload });
       if(error) throw error;
@@ -1556,16 +1640,18 @@
         (cloud.events && cloud.events.length) ||
         (cloud.todos && cloud.todos.length) ||
         (cloud.memos && cloud.memos.length) ||
-        (cloud.expenses && cloud.expenses.length)
+        (cloud.expenses && cloud.expenses.length) ||
+        (cloud.incomes && cloud.incomes.length)
       ));
       if(cloudHasContent){
         events = cloud.events || [];
         todos = cloud.todos || [];
         memos = cloud.memos || [];
         expenses = cloud.expenses || [];
+        incomes = cloud.incomes || [];
         notifiedSet = new Set(cloud.notified || []);
         save(LS_EVENTS, events); save(LS_TODOS, todos); save(LS_MEMOS, memos);
-        save(LS_EXPENSES, expenses); save(LS_NOTIFIED, Array.from(notifiedSet));
+        save(LS_EXPENSES, expenses); save(LS_INCOMES, incomes); save(LS_NOTIFIED, Array.from(notifiedSet));
         setSyncStatus("synced");
       } else {
         setSyncStatus("synced");
@@ -1876,11 +1962,13 @@
   let memos  = load(LS_MEMOS, []);
   let notifiedSet = new Set(load(LS_NOTIFIED, []));
   let expenses = load(LS_EXPENSES, []);
+  let incomes = load(LS_INCOMES, []);
 
   let viewYear, viewMonth; // 0-based month
   let selectedDate = fmtDate(new Date());
   let todoFilterMode = "all";
   let expenseCategoryFilterMode = "all";
+  let incomeCategoryFilterMode = "all";
   const holidaysByYear = {}; // { 2026: { "2026-01-01": "신정" } }
 
   function ensureHolidaysLoaded(year){
@@ -1916,6 +2004,7 @@
   function saveMemos(){ save(LS_MEMOS, memos); scheduleCloudSync(); }
   function saveNotified(){ save(LS_NOTIFIED, Array.from(notifiedSet)); scheduleCloudSync(); }
   function saveExpenses(){ save(LS_EXPENSES, expenses); scheduleCloudSync(); }
+  function saveIncomes(){ save(LS_INCOMES, incomes); scheduleCloudSync(); }
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -2125,6 +2214,26 @@
     return out;
   }
 
+  function getIncomesForMonth(year, month){
+    const out = [];
+    incomes.forEach(inc=>{
+      const anchor = parseDate(inc.date);
+      if(inc.recur === "monthly"){
+        const anchorMonthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+        const viewMonthStart = new Date(year, month, 1);
+        if(viewMonthStart < anchorMonthStart) return;
+        const day = clampDayToMonth(year, month, anchor.getDate());
+        out.push({ inc, dateStr: fmtDate(new Date(year, month, day)) });
+      } else {
+        if(anchor.getFullYear()===year && anchor.getMonth()===month){
+          out.push({ inc, dateStr: inc.date });
+        }
+      }
+    });
+    out.sort((a,b)=>a.dateStr.localeCompare(b.dateStr));
+    return out;
+  }
+
   /* ============ Filters/Search state ============ */
   function getActiveFilters(){
     return {
@@ -2174,6 +2283,11 @@
       (expByDate[o.dateStr] = expByDate[o.dateStr] || []).push(o.ex);
     });
 
+    const incByDate = {};
+    getIncomesForMonth(viewYear, viewMonth).forEach(o=>{
+      (incByDate[o.dateStr] = incByDate[o.dateStr] || []).push(o.inc);
+    });
+
     ensureHolidaysLoaded(viewYear);
     const holidayMap = holidaysByYear[viewYear] || {};
 
@@ -2219,6 +2333,7 @@
 
       const evs = (byDate[dateStr]||[]).slice().sort((a,b)=>(a.start||"").localeCompare(b.start||""));
       const exps = expByDate[dateStr] || [];
+      const incs = incByDate[dateStr] || [];
       let pillsHtml = "";
       const maxShow = 3;
       evs.slice(0,maxShow).forEach(ev=>{
@@ -2235,6 +2350,12 @@
       });
       if(exps.length > 2){
         pillsHtml += `<div class="cal-more">지출 +${exps.length-2}건</div>`;
+      }
+      incs.slice(0,2).forEach(inc=>{
+        pillsHtml += `<div class="cal-event-pill income">📥 ${escapeHtml(inc.title)}</div>`;
+      });
+      if(incs.length > 2){
+        pillsHtml += `<div class="cal-more">수금 +${incs.length-2}건</div>`;
       }
 
       const holidayHtml = holidayName ? `<div class="cal-holiday-label" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : "";
@@ -3228,6 +3349,136 @@
     toast("지출을 삭제했습니다.", "info");
   }
 
+  /* ============ 수금(수입) ============ */
+  const INCOME_CAT_TAG = { "용역비":"tag-inc-service", "급여회수":"tag-inc-salary", "기타수입":"tag-inc-etc2", "기타":"tag-inc-etc" };
+
+  function renderIncomes(){
+    document.getElementById("incomeMonthLabel").textContent = `${viewYear}년 ${viewMonth+1}월`;
+    let list = getIncomesForMonth(viewYear, viewMonth);
+    if(incomeCategoryFilterMode !== "all"){
+      list = list.filter(o=>o.inc.category === incomeCategoryFilterMode);
+    }
+
+    const total = list.reduce((sum,o)=>sum + (Number(o.inc.amount)||0), 0);
+    document.getElementById("incomeTotalBadge").textContent = fmtWon(total);
+
+    const byCat = {};
+    list.forEach(o=>{ byCat[o.inc.category] = (byCat[o.inc.category]||0) + (Number(o.inc.amount)||0); });
+    const chipsEl = document.getElementById("incomeBreakdown");
+    chipsEl.innerHTML = Object.keys(byCat).map(cat=>
+      `<span class="ai-chip chip-info">${escapeHtml(cat)} ${fmtWon(byCat[cat])}</span>`
+    ).join("");
+
+    const listEl = document.getElementById("incomeList");
+    if(list.length === 0){
+      listEl.innerHTML = `<div class="empty-state">이번 달 등록된 수금이 없습니다.</div>`;
+      return;
+    }
+    listEl.innerHTML = "";
+    list.forEach(o=>{
+      const inc = o.inc;
+      const item = document.createElement("div");
+      item.className = "item";
+      const catTag = INCOME_CAT_TAG[inc.category] || "tag-inc-etc";
+      const dateLabel = o.dateStr.slice(5).replace("-","/");
+      item.innerHTML = `
+        <div class="item-body">
+          <div class="item-title">${escapeHtml(inc.title)}</div>
+          <div class="item-meta">
+            <span>${dateLabel}</span>
+            <span class="tag ${catTag}">${escapeHtml(inc.category)}</span>
+            ${inc.recur==="monthly" ? `<span class="tag tag-recur">🔁 매월</span>` : ""}
+          </div>
+          ${inc.memo ? `<div class="item-meta">${escapeHtml(inc.memo)}</div>` : ""}
+        </div>
+        <div class="income-amount">${fmtWon(inc.amount)}</div>
+        <div class="item-actions">
+          <button data-act="edit" title="수정">✏️</button>
+          <button data-act="del" title="삭제">🗑️</button>
+        </div>`;
+      item.querySelector('[data-act="edit"]').addEventListener("click", ()=>openIncomeModal(inc));
+      item.querySelector('[data-act="del"]').addEventListener("click", ()=>deleteIncome(inc.id));
+      listEl.appendChild(item);
+    });
+  }
+
+  document.getElementById("incomeCategoryFilter").addEventListener("change", (e)=>{
+    incomeCategoryFilterMode = e.target.value;
+    renderIncomes();
+  });
+  document.getElementById("addIncomeBtn").addEventListener("click", ()=>openIncomeModal(null));
+  document.getElementById("incomeAmount").addEventListener("input", (e)=>{
+    e.target.value = formatAmountInputValue(e.target.value);
+  });
+
+  function openIncomeModal(inc){
+    document.getElementById("incomeModalTitle").textContent = inc ? "수금 수정" : "수금 추가";
+    document.getElementById("incomeId").value = inc ? inc.id : "";
+    document.getElementById("incomeTitle").value = inc ? inc.title : "";
+    document.getElementById("incomeAmount").value = inc ? formatAmountInputValue(inc.amount) : "";
+    document.getElementById("incomeCategory").value = inc ? inc.category : "용역비";
+    const defaultDay = clampDayToMonth(viewYear, viewMonth, new Date().getDate());
+    document.getElementById("incomeDate").value = inc ? inc.date : fmtDate(new Date(viewYear, viewMonth, defaultDay));
+    document.getElementById("incomeRecur").value = inc ? (inc.recur||"none") : "none";
+    document.getElementById("incomeMemo").value = inc ? (inc.memo||"") : "";
+    document.getElementById("incomeDeleteBtn").classList.toggle("hidden", !inc);
+    document.getElementById("incomeModalOverlay").classList.add("open");
+    setTimeout(()=>document.getElementById("incomeTitle").focus(), 60);
+  }
+  function closeIncomeModal(){
+    document.getElementById("incomeModalOverlay").classList.remove("open");
+  }
+  document.getElementById("incomeCancelBtn").addEventListener("click", closeIncomeModal);
+  document.getElementById("incomeModalOverlay").addEventListener("click", (e)=>{
+    if(e.target.id === "incomeModalOverlay") closeIncomeModal();
+  });
+  document.getElementById("incomeSaveBtn").addEventListener("click", ()=>{
+    const id = document.getElementById("incomeId").value;
+    const title = document.getElementById("incomeTitle").value.trim();
+    const amount = parseAmountValue(document.getElementById("incomeAmount").value);
+    const date = document.getElementById("incomeDate").value;
+    if(!title){ toast("항목명을 입력해주세요.", "error"); return; }
+    if(!date){ toast("수금일을 선택해주세요.", "error"); return; }
+    if(!amount || amount <= 0){ toast("금액을 올바르게 입력해주세요.", "error"); return; }
+
+    const data = {
+      title,
+      amount,
+      category: document.getElementById("incomeCategory").value,
+      date,
+      recur: document.getElementById("incomeRecur").value,
+      memo: document.getElementById("incomeMemo").value.trim(),
+    };
+
+    if(id){
+      const idx = incomes.findIndex(e=>e.id===id);
+      if(idx>-1) incomes[idx] = Object.assign({id}, data);
+      toast("수금을 수정했습니다.", "success");
+    } else {
+      data.id = uid();
+      incomes.push(data);
+      toast("수금을 추가했습니다.", "success");
+    }
+    saveIncomes();
+    closeIncomeModal();
+    renderIncomes();
+    renderCalendar();
+    renderAISummary();
+  });
+  document.getElementById("incomeDeleteBtn").addEventListener("click", ()=>{
+    const id = document.getElementById("incomeId").value;
+    if(id) deleteIncome(id);
+    closeIncomeModal();
+  });
+  function deleteIncome(id){
+    incomes = incomes.filter(e=>e.id!==id);
+    saveIncomes();
+    renderIncomes();
+    renderCalendar();
+    renderAISummary();
+    toast("수금을 삭제했습니다.", "info");
+  }
+
   /* ============ Memo ============ */
   function renderMemos(){
     const listEl = document.getElementById("memoList");
@@ -3306,7 +3557,7 @@
 
   /* ============ Backup / Restore ============ */
   document.getElementById("backupBtn").addEventListener("click", ()=>{
-    const payload = { events, todos, memos, expenses, exportedAt: new Date().toISOString() };
+    const payload = { events, todos, memos, expenses, incomes, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -3333,8 +3584,9 @@
         if(Array.isArray(data.todos)) todos = data.todos;
         if(Array.isArray(data.memos)) memos = data.memos;
         if(Array.isArray(data.expenses)) expenses = data.expenses;
-        saveEvents(); saveTodos(); saveMemos(); saveExpenses();
-        renderCalendar(); renderDayEvents(); renderTodos(); renderMemos(); renderExpenses(); renderAISummary();
+        if(Array.isArray(data.incomes)) incomes = data.incomes;
+        saveEvents(); saveTodos(); saveMemos(); saveExpenses(); saveIncomes();
+        renderCalendar(); renderDayEvents(); renderTodos(); renderMemos(); renderExpenses(); renderIncomes(); renderAISummary();
         toast("백업 데이터를 복원했습니다.", "success");
       }catch(err){
         toast("파일을 읽을 수 없습니다. 올바른 백업 파일인지 확인해주세요.", "error");
@@ -3567,6 +3819,7 @@
       renderTodos();
       renderMemos();
       renderExpenses();
+      renderIncomes();
       renderAISummary();
       renderTaxNews();
       checkUpcomingNotifications();
@@ -3600,6 +3853,13 @@
     if(/세금|갑근세|부가세/.test(title)) return "세금";
     if(/이자|적금|임차료|리스료|보험료|관리비/.test(title)) return "고정비";
     return "변동비";
+  }
+  function guessIncomeCategory(itemName, note){
+    const text = `${itemName} ${note||""}`;
+    if(/급여회수/.test(text)) return "급여회수";
+    if(/기타수입|부가세|대체/.test(text)) return "기타수입";
+    if(/용역|감리|건설사업관리|신축공사|개선사업|정비사업|사업관리|공사/.test(text)) return "용역비";
+    return "기타";
   }
   function parseExcelFundingSchedule(workbook){
     const activeIdx = (workbook.Workbook && workbook.Workbook.WBView && workbook.Workbook.WBView[0] && typeof workbook.Workbook.WBView[0].activeTab === "number")
@@ -3659,7 +3919,7 @@
           title,
           note,
           amountWon: Math.round(e * 10000),
-          category: "기타",
+          category: guessIncomeCategory(itemName, note),
           type: "income",
           selected: true,
         });
@@ -3767,7 +4027,7 @@
   document.getElementById("excelImportConfirmBtn").addEventListener("click", ()=>{
     const chosen = excelImportCandidates.filter(x=>x.selected);
     if(!chosen.length){ toast("가져올 항목을 선택해주세요.", "error"); return; }
-    let expenseCount = 0;
+    let expenseCount = 0, incomeCount = 0;
     chosen.forEach(it=>{
       events.push({
         id: uid(), title: it.title, date: it.date, category: "업무",
@@ -3775,8 +4035,13 @@
         recur: "none", recurEnd: "", important: false, importantMark: "star",
         color: it.type === "income" ? "green" : "indigo",
       });
-      // 수금(수입) 항목은 지출 관리 데이터 모델과 성격이 달라(돈이 들어오는 것) 지출 내역에는 넣지 않고, 일정에만 반영한다.
-      if(it.type !== "income"){
+      if(it.type === "income"){
+        incomes.push({
+          id: uid(), title: it.title, amount: it.amountWon, category: it.category,
+          date: it.date, recur: "none", memo: it.note,
+        });
+        incomeCount++;
+      } else {
         expenses.push({
           id: uid(), title: it.title, amount: it.amountWon, category: it.category,
           date: it.date, recur: "none", memo: it.note,
@@ -3786,11 +4051,13 @@
     });
     saveEvents();
     saveExpenses();
+    saveIncomes();
     renderCalendar();
     renderDayEvents();
     renderExpenses();
+    renderIncomes();
     renderAISummary();
-    toast(`일정 ${chosen.length}건, 지출 ${expenseCount}건을 등록했어요.`, "success");
+    toast(`일정 ${chosen.length}건, 지출 ${expenseCount}건, 수금 ${incomeCount}건을 등록했어요.`, "success");
     excelImportCandidates = [];
     document.getElementById("excelImportPreview").style.display = "none";
     document.getElementById("excelImportFile").value = "";
