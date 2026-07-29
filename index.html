@@ -282,6 +282,16 @@
     .layout{grid-template-columns:1fr;}
   }
   .col{display:flex;flex-direction:column;gap:20px;min-width:0;}
+  .finance-layout{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:20px;
+    align-items:start;
+    margin-top:20px;
+  }
+  @media (max-width: 980px){
+    .finance-layout{grid-template-columns:1fr;}
+  }
 
   /* ---------- Toolbar (search/filter) ---------- */
   .toolbar{
@@ -1194,49 +1204,51 @@
     </div>
   </div>
 
-  <div class="card" style="margin-top:20px;">
-    <div class="card-title">
-      <span style="display:flex;align-items:center;gap:8px;">
-        💰 월별 지출 관리
-        <span class="section-subtitle" id="expenseMonthLabel">-</span>
-      </span>
-      <span class="badge" id="expenseTotalBadge">0원</span>
+  <div class="finance-layout">
+    <div class="card">
+      <div class="card-title">
+        <span style="display:flex;align-items:center;gap:8px;">
+          💰 월별 지출 관리
+          <span class="section-subtitle" id="expenseMonthLabel">-</span>
+        </span>
+        <span class="badge" id="expenseTotalBadge">0원</span>
+      </div>
+      <div class="toolbar">
+        <select id="expenseCategoryFilter">
+          <option value="all">전체 카테고리</option>
+          <option value="고정비">고정비</option>
+          <option value="변동비">변동비</option>
+          <option value="인건비">인건비</option>
+          <option value="세금">세금</option>
+          <option value="기타">기타</option>
+        </select>
+        <button class="btn btn-primary btn-sm" id="addExpenseBtn">+ 지출 추가</button>
+      </div>
+      <div class="ai-chips" id="expenseBreakdown" style="margin-bottom:10px;"></div>
+      <div class="list" id="expenseList" style="max-height:none;"></div>
     </div>
-    <div class="toolbar">
-      <select id="expenseCategoryFilter">
-        <option value="all">전체 카테고리</option>
-        <option value="고정비">고정비</option>
-        <option value="변동비">변동비</option>
-        <option value="인건비">인건비</option>
-        <option value="세금">세금</option>
-        <option value="기타">기타</option>
-      </select>
-      <button class="btn btn-primary btn-sm" id="addExpenseBtn">+ 지출 추가</button>
-      <button class="btn btn-primary btn-sm" id="addIncomeBtn">+ 수금 추가</button>
-    </div>
-    <div class="ai-chips" id="expenseBreakdown" style="margin-bottom:10px;"></div>
-    <div class="list" id="expenseList" style="max-height:none;"></div>
-  </div>
 
-  <div class="card" style="margin-top:20px;">
-    <div class="card-title">
-      <span style="display:flex;align-items:center;gap:8px;">
-        📥 월별 수금 관리
-        <span class="section-subtitle" id="incomeMonthLabel">-</span>
-      </span>
-      <span class="badge" id="incomeTotalBadge">0원</span>
+    <div class="card">
+      <div class="card-title">
+        <span style="display:flex;align-items:center;gap:8px;">
+          📥 월별 수금 관리
+          <span class="section-subtitle" id="incomeMonthLabel">-</span>
+        </span>
+        <span class="badge" id="incomeTotalBadge">0원</span>
+      </div>
+      <div class="toolbar">
+        <select id="incomeCategoryFilter">
+          <option value="all">전체 카테고리</option>
+          <option value="용역비">용역비</option>
+          <option value="급여회수">급여회수</option>
+          <option value="기타수입">기타수입</option>
+          <option value="기타">기타</option>
+        </select>
+        <button class="btn btn-primary btn-sm" id="addIncomeBtn">+ 수금 추가</button>
+      </div>
+      <div class="ai-chips" id="incomeBreakdown" style="margin-bottom:10px;"></div>
+      <div class="list" id="incomeList" style="max-height:none;"></div>
     </div>
-    <div class="toolbar">
-      <select id="incomeCategoryFilter">
-        <option value="all">전체 카테고리</option>
-        <option value="용역비">용역비</option>
-        <option value="급여회수">급여회수</option>
-        <option value="기타수입">기타수입</option>
-        <option value="기타">기타</option>
-      </select>
-    </div>
-    <div class="ai-chips" id="incomeBreakdown" style="margin-bottom:10px;"></div>
-    <div class="list" id="incomeList" style="max-height:none;"></div>
   </div>
 
   <footer class="app-footer">업무 일정 관리 · 모든 데이터는 이 기기와 클라우드에 자동 저장됩니다.</footer>
