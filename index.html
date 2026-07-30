@@ -4051,6 +4051,7 @@
     const BLACKLIST = EXCEL_IMPORT_BLACKLIST;
     const compact = excelImportCompact;
     const results = [];
+    let incomeGroupDay = 1;
     for(let i=4; i<rows.length; i++){
       const row = rows[i] || [];
       if(format === "income"){
@@ -4060,8 +4061,10 @@
         if(typeof d === "string") d = d.trim();
 
         if(typeof c === "string"){
+          // "기준일"엔 정확한 날짜가 아니라 "7/1~10"·"7/11~20"처럼 열흘 단위 구간이
+          // 적혀 있다 — 구간 시작일을 항목 날짜로 써서, 매번 1일로만 몰리지 않게 한다.
           const gm = c.match(/^(\d{1,2})\/(\d{1,2})/);
-          if(gm) month = parseInt(gm[1],10);
+          if(gm){ month = parseInt(gm[1],10); incomeGroupDay = parseInt(gm[2],10); }
         }
 
         const itemName = d;
@@ -4072,9 +4075,10 @@
         const note = b ? String(b).trim().slice(0,60) : "";
         const title = `[수금] ${itemName}${note ? ` (${note})` : ""}`;
         const mm = String(month).padStart(2,"0");
+        const dd = String(clampDayToMonth(year, month-1, incomeGroupDay)).padStart(2,"0");
 
         results.push({
-          date: `${year}-${mm}-01`,
+          date: `${year}-${mm}-${dd}`,
           title,
           note,
           amountWon: Math.round(e * 10000),
