@@ -1056,7 +1056,23 @@
     </div>
     <div class="form-row">
       <label>샘플 대상 월</label>
-      <input type="month" id="sampleMonthInput" value="2099-01">
+      <div style="display:flex;gap:8px;">
+        <select id="sampleYearSelect" style="flex:1;"></select>
+        <select id="sampleMonthSelect" style="flex:1;">
+          <option value="1">1월</option>
+          <option value="2">2월</option>
+          <option value="3">3월</option>
+          <option value="4">4월</option>
+          <option value="5">5월</option>
+          <option value="6">6월</option>
+          <option value="7">7월</option>
+          <option value="8">8월</option>
+          <option value="9">9월</option>
+          <option value="10">10월</option>
+          <option value="11">11월</option>
+          <option value="12">12월</option>
+        </select>
+      </div>
     </div>
     <div class="form-row">
       <label>포함할 업무 분류</label>
@@ -2915,6 +2931,21 @@
     return rows;
   }
 
+  (function initSampleYearSelect(){
+    const sel = document.getElementById("sampleYearSelect");
+    const thisYear = new Date().getFullYear();
+    const years = [];
+    for(let y=thisYear; y<=thisYear+3; y++) years.push(y);
+    years.push(2099);
+    sel.innerHTML = years.map(y=>`<option value="${y}">${y}년${y===2099?" (벤치마킹용)":""}</option>`).join("");
+    sel.value = "2099";
+  })();
+  function getSampleMonthStr(){
+    const y = document.getElementById("sampleYearSelect").value;
+    const m = document.getElementById("sampleMonthSelect").value.padStart(2,"0");
+    return `${y}-${m}`;
+  }
+
   document.getElementById("sampleDataBtn").addEventListener("click", ()=>{
     document.getElementById("sampleDataModalOverlay").classList.add("open");
   });
@@ -2926,7 +2957,7 @@
   });
 
   document.getElementById("sampleExcelBtn").addEventListener("click", ()=>{
-    const monthStr = document.getElementById("sampleMonthInput").value;
+    const monthStr = getSampleMonthStr();
     if(!monthStr){ toast("샘플 대상 월을 선택해주세요.", "error"); return; }
     const selectedCats = getSelectedSampleCategories();
     if(!selectedCats.size){ toast("포함할 업무 분류를 하나 이상 선택해주세요.", "error"); return; }
@@ -2950,7 +2981,7 @@
   });
 
   document.getElementById("sampleGenerateBtn").addEventListener("click", ()=>{
-    const monthStr = document.getElementById("sampleMonthInput").value;
+    const monthStr = getSampleMonthStr();
     if(!monthStr){ toast("샘플 대상 월을 선택해주세요.", "error"); return; }
     const selectedCats = getSelectedSampleCategories();
     if(!selectedCats.size){ toast("포함할 업무 분류를 하나 이상 선택해주세요.", "error"); return; }
