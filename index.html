@@ -703,7 +703,8 @@
   .role-viewer #expenseDeleteBtn,
   .role-viewer #incomeDeleteBtn,
   .role-viewer #expenseBulkDeleteBtn,
-  .role-viewer #incomeBulkDeleteBtn{
+  .role-viewer #incomeBulkDeleteBtn,
+  .role-viewer #excelImportResetBtn{
     pointer-events:none !important;
     opacity:.55;
   }
@@ -719,7 +720,8 @@
   .role-member #expenseBulkDeleteBtn,
   .role-member #incomeBulkDeleteBtn,
   .role-member #restoreBtn,
-  .role-member #sampleDataBtn{display:none !important;}
+  .role-member #sampleDataBtn,
+  .role-member #excelImportResetBtn{display:none !important;}
 
   /* ---------- Modal ---------- */
   .modal-overlay{
@@ -1238,6 +1240,7 @@
       <div class="card">
         <div class="card-title">
           <span>📊 엑셀 자금일정 가져오기</span>
+          <button class="btn btn-danger btn-sm" id="excelImportResetBtn">DB 초기화</button>
         </div>
         <div class="add-inline">
           <input type="file" id="excelImportFile" accept=".xlsx,.xls" style="flex:1;">
@@ -4617,14 +4620,14 @@
             id: uid(), title: it.title, date: it.date, category: "업무",
             start: "", end: "", location: "", desc: it.note,
             recur: "none", recurEnd: "", important: false, importantMark: "star",
-            color: "green",
+            color: "green", excelImported: true,
           });
           eventCount++;
         }
         if(toIncome){
           incomes.push({
             id: uid(), title: it.title, amount: it.amountWon, category: it.category,
-            date: it.date, recur: "none", memo: it.note,
+            date: it.date, recur: "none", memo: it.note, excelImported: true,
           });
           incomeCount++;
         }
@@ -4634,14 +4637,14 @@
             id: uid(), title: it.title, date: it.date, category: "업무",
             start: "", end: "", location: "", desc: it.note,
             recur: "none", recurEnd: "", important: false, importantMark: "star",
-            color: "indigo",
+            color: "indigo", excelImported: true,
           });
           eventCount++;
         }
         if(toExpense){
           expenses.push({
             id: uid(), title: it.title, amount: it.amountWon, category: it.category,
-            date: it.date, recur: "none", memo: it.note,
+            date: it.date, recur: "none", memo: it.note, excelImported: true,
           });
           expenseCount++;
         }
@@ -4659,6 +4662,27 @@
     excelImportCandidates = [];
     document.getElementById("excelImportPreview").style.display = "none";
     document.getElementById("excelImportFile").value = "";
+  });
+
+  document.getElementById("excelImportResetBtn").addEventListener("click", ()=>{
+    const evCount = events.filter(e=>e.excelImported).length;
+    const exCount = expenses.filter(e=>e.excelImported).length;
+    const inCount = incomes.filter(e=>e.excelImported).length;
+    const total = evCount + exCount + inCount;
+    if(!total){ toast("엑셀로 가져온 데이터가 없어요.", "info"); return; }
+    if(!confirm(`엑셀로 가져온 일정 ${evCount}건, 지출 ${exCount}건, 수금 ${inCount}건을 삭제할까요?\n직접 입력한 데이터는 그대로 남습니다.`)) return;
+    events = events.filter(e=>!e.excelImported);
+    expenses = expenses.filter(e=>!e.excelImported);
+    incomes = incomes.filter(e=>!e.excelImported);
+    saveEvents();
+    saveExpenses();
+    saveIncomes();
+    renderCalendar();
+    renderDayEvents();
+    renderExpenses();
+    renderIncomes();
+    renderAISummary();
+    toast(`엑셀로 가져온 데이터 ${total}건을 삭제했습니다.`, "info");
   });
 
   initAuth();
