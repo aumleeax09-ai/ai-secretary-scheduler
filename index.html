@@ -167,7 +167,7 @@
     transition:background .15s ease, color .15s ease;
   }
   .action-group .icon-btn svg{width:17px;height:17px;}
-  .action-group #sampleDataBtn{font-size:30px;}
+  .action-group #sampleDataBtn{font-size:25px;}
   .action-group .icon-btn:hover{background:var(--card);color:var(--primary);transform:none;}
   .action-group .icon-btn:active{transform:scale(.92);}
   .action-group .icon-btn.icon-badge{
@@ -1105,7 +1105,6 @@
         <div class="action-divider"></div>
         <button class="icon-btn" id="backupBtn" title="JSON 백업" aria-label="JSON 백업"><span class="arrow-wide">↓</span></button>
         <button class="icon-btn" id="restoreBtn" title="JSON 복원" aria-label="JSON 복원"><span class="arrow-wide">↑</span></button>
-        <button class="icon-btn" id="sampleDataBtn" title="샘플 데이터 관리" aria-label="샘플 데이터 관리">🧪</button>
       </div>
       <input type="file" id="restoreFile" accept="application/json" class="hidden">
       <div class="user-badge">
@@ -1113,6 +1112,7 @@
         <span class="role-badge" id="userBadgeRole"></span>
       </div>
       <div class="action-group">
+        <button class="icon-btn" id="sampleDataBtn" title="샘플 데이터 관리" aria-label="샘플 데이터 관리">🧪</button>
         <button class="icon-btn" id="adminPanelBtn" title="관리자 페이지" aria-label="관리자 페이지" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
         <button class="logout-btn" id="logoutBtn" title="로그아웃" aria-label="로그아웃">로그아웃<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
       </div>
