@@ -1660,6 +1660,17 @@
         <input type="date" id="exportEventsEnd">
       </div>
     </div>
+    <div class="form-row">
+      <label>형식</label>
+      <div style="display:flex;gap:16px;">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;">
+          <input type="radio" name="exportEventsFormat" id="exportEventsFormatList" value="list" checked> 목록형
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;">
+          <input type="radio" name="exportEventsFormat" id="exportEventsFormatGrid" value="grid"> 달력표형
+        </label>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-soft" id="exportEventsCancelBtn">취소</button>
       <button class="btn btn-primary" id="exportEventsConfirmBtn">내보내기</button>
@@ -2628,6 +2639,57 @@
 
   /* ============ 일정 엑셀로 내보내기 ============ */
   const RECUR_LABEL = { none:"반복 안 함", daily:"매일", weekly:"매주", monthly:"매월", yearly:"매년" };
+  const EXPORT_WEEKDAYS = ["일","월","화","수","목","금","토"];
+
+  // 선택한 기간이 걸치는 달마다 시트를 하나씩 만들어, 화면에서 보던 달력 모양 그대로
+  // (요일 칸에 그날 일정이 들어간 표) 엑셀에 옮겨 담는다.
+  function buildEventGridWorkbook(wb, startStr, endStr, occs){
+    const start = parseDate(startStr), end = parseDate(endStr);
+    let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    const last = new Date(end.getFullYear(), end.getMonth(), 1);
+    while(cur <= last){
+      const year = cur.getFullYear(), month = cur.getMonth();
+      const daysInMonth = new Date(year, month+1, 0).getDate();
+      const startOffset = new Date(year, month, 1).getDay();
+
+      const byDate = {};
+      occs.forEach(o=>{
+        if(o.dateObj.getFullYear()===year && o.dateObj.getMonth()===month){
+          (byDate[o.dateStr] = byDate[o.dateStr] || []).push(o.ev);
+        }
+      });
+
+      const aoa = [[`${year}년 ${month+1}월`], EXPORT_WEEKDAYS];
+      const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+      let row = [];
+      for(let i=0; i<totalCells; i++){
+        const dayNum = i - startOffset + 1;
+        if(dayNum < 1 || dayNum > daysInMonth){
+          row.push("");
+        } else {
+          const dateStr = fmtDate(new Date(year, month, dayNum));
+          const evs = byDate[dateStr] || [];
+          const lines = [`${dayNum}일`, ...evs.map(ev => (ev.start ? `[${ev.start}] ` : "") + ev.title)];
+          row.push(lines.join("\n"));
+        }
+        if(row.length === 7){ aoa.push(row); row = []; }
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = EXPORT_WEEKDAYS.map(()=>({ wch: 24 }));
+      ws["!rows"] = aoa.map((_,idx)=> ({ hpx: idx < 2 ? 22 : 90 }));
+      ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:6} }];
+      Object.keys(ws).forEach(key=>{
+        if(key[0] === "!") return;
+        ws[key].s = { alignment: { wrapText: true, vertical: "top" } };
+      });
+      const sheetName = `${year}-${String(month+1).padStart(2,"0")}`;
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+      cur = new Date(year, month+1, 1);
+    }
+  }
+
   document.getElementById("exportEventsBtn").addEventListener("click", ()=>{
     const monthStart = new Date(viewYear, viewMonth, 1);
     const monthEnd = new Date(viewYear, viewMonth+1, 0);
@@ -2650,29 +2712,35 @@
     const occs = getOccurrencesInRange(parseDate(startStr), parseDate(endStr));
     if(!occs.length){ toast("선택한 기간에 등록된 일정이 없어요.", "error"); return; }
 
-    const rows = occs
-      .slice()
-      .sort((a,b)=> a.dateStr === b.dateStr ? (a.ev.start||"").localeCompare(b.ev.start||"") : a.dateStr.localeCompare(b.dateStr))
-      .map(o=>({
-        "날짜": o.dateStr,
-        "제목": o.ev.title,
-        "카테고리": o.ev.category,
-        "시작 시간": o.ev.start || "",
-        "종료 시간": o.ev.end || "",
-        "장소": o.ev.location || "",
-        "메모": o.ev.desc || "",
-        "반복": RECUR_LABEL[o.ev.recur] || "반복 안 함",
-        "중요 일정": o.ev.important ? "Y" : "",
-      }));
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{wch:11},{wch:30},{wch:8},{wch:9},{wch:9},{wch:16},{wch:24},{wch:9},{wch:8}];
+    const format = document.getElementById("exportEventsFormatGrid").checked ? "grid" : "list";
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "일정");
+
+    if(format === "grid"){
+      buildEventGridWorkbook(wb, startStr, endStr, occs);
+    } else {
+      const rows = occs
+        .slice()
+        .sort((a,b)=> a.dateStr === b.dateStr ? (a.ev.start||"").localeCompare(b.ev.start||"") : a.dateStr.localeCompare(b.dateStr))
+        .map(o=>({
+          "날짜": o.dateStr,
+          "제목": o.ev.title,
+          "카테고리": o.ev.category,
+          "시작 시간": o.ev.start || "",
+          "종료 시간": o.ev.end || "",
+          "장소": o.ev.location || "",
+          "메모": o.ev.desc || "",
+          "반복": RECUR_LABEL[o.ev.recur] || "반복 안 함",
+          "중요 일정": o.ev.important ? "Y" : "",
+        }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = [{wch:11},{wch:30},{wch:8},{wch:9},{wch:9},{wch:16},{wch:24},{wch:9},{wch:8}];
+      XLSX.utils.book_append_sheet(wb, ws, "일정");
+    }
+
     XLSX.writeFile(wb, `일정_${startStr}_${endStr}.xlsx`);
 
     document.getElementById("exportEventsModalOverlay").classList.remove("open");
-    toast(`일정 ${rows.length}건을 엑셀로 내보냈습니다.`, "success");
+    toast(`일정 ${occs.length}건을 엑셀로 내보냈습니다.`, "success");
   });
   document.getElementById("eventCancelBtn").addEventListener("click", closeEventModal);
   document.getElementById("eventMapBtn").addEventListener("click", ()=>{
