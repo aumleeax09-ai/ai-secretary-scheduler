@@ -687,7 +687,9 @@
   .role-viewer #todoModalDeleteBtn,
   .role-viewer #memoModalDeleteBtn,
   .role-viewer #expenseDeleteBtn,
-  .role-viewer #incomeDeleteBtn{
+  .role-viewer #incomeDeleteBtn,
+  .role-viewer #expenseBulkDeleteBtn,
+  .role-viewer #incomeBulkDeleteBtn{
     pointer-events:none !important;
     opacity:.55;
   }
@@ -700,6 +702,8 @@
   .role-member #memoModalDeleteBtn,
   .role-member #expenseDeleteBtn,
   .role-member #incomeDeleteBtn,
+  .role-member #expenseBulkDeleteBtn,
+  .role-member #incomeBulkDeleteBtn,
   .role-member #restoreBtn{display:none !important;}
 
   /* ---------- Modal ---------- */
@@ -1241,6 +1245,12 @@
         </select>
         <button class="btn btn-primary btn-sm" id="addExpenseBtn">+ 지출 추가</button>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:2px 0 8px;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-sub);cursor:pointer;">
+          <input type="checkbox" id="expenseSelectAllCheck"> 전체 선택
+        </label>
+        <button class="btn btn-soft btn-sm" id="expenseBulkDeleteBtn" style="margin-left:auto;">선택 삭제</button>
+      </div>
       <div class="ai-chips" id="expenseBreakdown" style="margin-bottom:10px;"></div>
       <div class="list" id="expenseList" style="max-height:none;"></div>
     </div>
@@ -1262,6 +1272,12 @@
           <option value="기타">기타</option>
         </select>
         <button class="btn btn-primary btn-sm" id="addIncomeBtn">+ 수금 추가</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:2px 0 8px;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-sub);cursor:pointer;">
+          <input type="checkbox" id="incomeSelectAllCheck"> 전체 선택
+        </label>
+        <button class="btn btn-soft btn-sm" id="incomeBulkDeleteBtn" style="margin-left:auto;">선택 삭제</button>
       </div>
       <div class="ai-chips" id="incomeBreakdown" style="margin-bottom:10px;"></div>
       <div class="list" id="incomeList" style="max-height:none;"></div>
@@ -1998,6 +2014,8 @@
   let todoFilterMode = "all";
   let expenseCategoryFilterMode = "all";
   let incomeCategoryFilterMode = "all";
+  let expenseSelectedIds = new Set();
+  let incomeSelectedIds = new Set();
   const holidaysByYear = {}; // { 2026: { "2026-01-01": "신정" } }
 
   function ensureHolidaysLoaded(year){
@@ -3268,9 +3286,13 @@
       `<span class="ai-chip chip-info">${escapeHtml(cat)} ${fmtWon(byCat[cat])}</span>`
     ).join("");
 
+    const visibleIds = new Set(list.map(o=>o.ex.id));
+    expenseSelectedIds.forEach(id=>{ if(!visibleIds.has(id)) expenseSelectedIds.delete(id); });
+
     const listEl = document.getElementById("expenseList");
     if(list.length === 0){
       listEl.innerHTML = `<div class="empty-state">이번 달 등록된 지출이 없습니다.</div>`;
+      updateExpenseSelectAllState(list);
       return;
     }
     listEl.innerHTML = "";
@@ -3281,6 +3303,7 @@
       const catTag = EXPENSE_CAT_TAG[ex.category] || "tag-exp-etc";
       const dateLabel = o.dateStr.slice(5).replace("-","/");
       item.innerHTML = `
+        <input type="checkbox" class="expense-select-check" data-id="${ex.id}" ${expenseSelectedIds.has(ex.id)?"checked":""}>
         <div class="item-body">
           <div class="item-title">${escapeHtml(ex.title)}</div>
           <div class="item-meta">
@@ -3297,9 +3320,46 @@
         </div>`;
       item.querySelector('[data-act="edit"]').addEventListener("click", ()=>openExpenseModal(ex));
       item.querySelector('[data-act="del"]').addEventListener("click", ()=>deleteExpense(ex.id));
+      item.querySelector(".expense-select-check").addEventListener("change", (e)=>{
+        if(e.target.checked) expenseSelectedIds.add(ex.id); else expenseSelectedIds.delete(ex.id);
+        updateExpenseSelectAllState(list);
+      });
       listEl.appendChild(item);
     });
+    updateExpenseSelectAllState(list);
   }
+
+  function updateExpenseSelectAllState(list){
+    const cb = document.getElementById("expenseSelectAllCheck");
+    if(list.length === 0){
+      cb.checked = false; cb.indeterminate = false; return;
+    }
+    const selectedCount = list.filter(o=>expenseSelectedIds.has(o.ex.id)).length;
+    cb.checked = selectedCount === list.length;
+    cb.indeterminate = selectedCount > 0 && selectedCount < list.length;
+  }
+
+  document.getElementById("expenseSelectAllCheck").addEventListener("change", (e)=>{
+    let list = getExpensesForMonth(viewYear, viewMonth);
+    if(expenseCategoryFilterMode !== "all"){
+      list = list.filter(o=>o.ex.category === expenseCategoryFilterMode);
+    }
+    if(e.target.checked){ list.forEach(o=>expenseSelectedIds.add(o.ex.id)); }
+    else { list.forEach(o=>expenseSelectedIds.delete(o.ex.id)); }
+    renderExpenses();
+  });
+
+  document.getElementById("expenseBulkDeleteBtn").addEventListener("click", ()=>{
+    if(expenseSelectedIds.size === 0){ toast("삭제할 지출 항목을 선택해주세요.", "error"); return; }
+    if(!confirm(`선택한 지출 ${expenseSelectedIds.size}건을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    expenses = expenses.filter(e=>!expenseSelectedIds.has(e.id));
+    expenseSelectedIds.clear();
+    saveExpenses();
+    renderExpenses();
+    renderCalendar();
+    renderAISummary();
+    toast("선택한 지출을 삭제했습니다.", "info");
+  });
 
   document.getElementById("expenseCategoryFilter").addEventListener("change", (e)=>{
     expenseCategoryFilterMode = e.target.value;
@@ -3398,9 +3458,13 @@
       `<span class="ai-chip chip-info">${escapeHtml(cat)} ${fmtWon(byCat[cat])}</span>`
     ).join("");
 
+    const visibleIds = new Set(list.map(o=>o.inc.id));
+    incomeSelectedIds.forEach(id=>{ if(!visibleIds.has(id)) incomeSelectedIds.delete(id); });
+
     const listEl = document.getElementById("incomeList");
     if(list.length === 0){
       listEl.innerHTML = `<div class="empty-state">이번 달 등록된 수금이 없습니다.</div>`;
+      updateIncomeSelectAllState(list);
       return;
     }
     listEl.innerHTML = "";
@@ -3411,6 +3475,7 @@
       const catTag = INCOME_CAT_TAG[inc.category] || "tag-inc-etc";
       const dateLabel = o.dateStr.slice(5).replace("-","/");
       item.innerHTML = `
+        <input type="checkbox" class="income-select-check" data-id="${inc.id}" ${incomeSelectedIds.has(inc.id)?"checked":""}>
         <div class="item-body">
           <div class="item-title">${escapeHtml(inc.title)}</div>
           <div class="item-meta">
@@ -3427,9 +3492,46 @@
         </div>`;
       item.querySelector('[data-act="edit"]').addEventListener("click", ()=>openIncomeModal(inc));
       item.querySelector('[data-act="del"]').addEventListener("click", ()=>deleteIncome(inc.id));
+      item.querySelector(".income-select-check").addEventListener("change", (e)=>{
+        if(e.target.checked) incomeSelectedIds.add(inc.id); else incomeSelectedIds.delete(inc.id);
+        updateIncomeSelectAllState(list);
+      });
       listEl.appendChild(item);
     });
+    updateIncomeSelectAllState(list);
   }
+
+  function updateIncomeSelectAllState(list){
+    const cb = document.getElementById("incomeSelectAllCheck");
+    if(list.length === 0){
+      cb.checked = false; cb.indeterminate = false; return;
+    }
+    const selectedCount = list.filter(o=>incomeSelectedIds.has(o.inc.id)).length;
+    cb.checked = selectedCount === list.length;
+    cb.indeterminate = selectedCount > 0 && selectedCount < list.length;
+  }
+
+  document.getElementById("incomeSelectAllCheck").addEventListener("change", (e)=>{
+    let list = getIncomesForMonth(viewYear, viewMonth);
+    if(incomeCategoryFilterMode !== "all"){
+      list = list.filter(o=>o.inc.category === incomeCategoryFilterMode);
+    }
+    if(e.target.checked){ list.forEach(o=>incomeSelectedIds.add(o.inc.id)); }
+    else { list.forEach(o=>incomeSelectedIds.delete(o.inc.id)); }
+    renderIncomes();
+  });
+
+  document.getElementById("incomeBulkDeleteBtn").addEventListener("click", ()=>{
+    if(incomeSelectedIds.size === 0){ toast("삭제할 수금 항목을 선택해주세요.", "error"); return; }
+    if(!confirm(`선택한 수금 ${incomeSelectedIds.size}건을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    incomes = incomes.filter(e=>!incomeSelectedIds.has(e.id));
+    incomeSelectedIds.clear();
+    saveIncomes();
+    renderIncomes();
+    renderCalendar();
+    renderAISummary();
+    toast("선택한 수금을 삭제했습니다.", "info");
+  });
 
   document.getElementById("incomeCategoryFilter").addEventListener("change", (e)=>{
     incomeCategoryFilterMode = e.target.value;
