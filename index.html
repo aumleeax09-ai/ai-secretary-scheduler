@@ -582,6 +582,19 @@
   }
   .item-actions button:hover{background:var(--border);color:var(--text);}
 
+  .excel-import-dd{position:relative;}
+  .excel-import-dd-menu{
+    display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:20;
+    min-width:120px;background:var(--card);border:1px solid var(--border);
+    border-radius:8px;box-shadow:var(--shadow);overflow:hidden;
+  }
+  .excel-import-dd-menu.open{display:block;}
+  .excel-import-dd-menu button{
+    display:block;width:100%;text-align:left;padding:8px 12px;font-size:12.5px;
+    background:none;border:none;cursor:pointer;color:var(--text);
+  }
+  .excel-import-dd-menu button:hover{background:var(--card-soft);}
+
   .add-inline{display:flex;gap:8px;margin-top:12px;}
   .add-inline input{flex:1;}
   .todo-add-row{flex-wrap:wrap;}
@@ -1197,8 +1210,22 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
             <div style="font-size:12.5px;color:var(--text-sub);" id="excelImportSummary"></div>
             <div style="display:flex;gap:6px;">
-              <button class="btn btn-soft btn-sm" id="excelImportSelectAllBtn">전체 선택</button>
-              <button class="btn btn-soft btn-sm" id="excelImportSelectNoneBtn">전체 해제</button>
+              <div class="excel-import-dd">
+                <button class="btn btn-soft btn-sm" id="excelImportSelectBtn">선택 ▾</button>
+                <div class="excel-import-dd-menu" id="excelImportSelectMenu">
+                  <button type="button" data-scope="all">전체 선택</button>
+                  <button type="button" data-scope="income">수금만 선택</button>
+                  <button type="button" data-scope="expense">지출만 선택</button>
+                </div>
+              </div>
+              <div class="excel-import-dd">
+                <button class="btn btn-soft btn-sm" id="excelImportDeselectBtn">해제 ▾</button>
+                <div class="excel-import-dd-menu" id="excelImportDeselectMenu">
+                  <button type="button" data-scope="all">전체 해제</button>
+                  <button type="button" data-scope="income">수금만 해제</button>
+                  <button type="button" data-scope="expense">지출만 해제</button>
+                </div>
+              </div>
             </div>
           </div>
           <div id="excelImportList" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
@@ -4173,13 +4200,31 @@
     };
     reader.readAsArrayBuffer(file);
   });
-  document.getElementById("excelImportSelectAllBtn").addEventListener("click", ()=>{
-    excelImportCandidates.forEach(x=>x.selected=true);
+  function excelImportSetSelected(scope, value){
+    excelImportCandidates.forEach(x=>{
+      if(scope === "all" || x.type === scope) x.selected = value;
+    });
     renderExcelImportPreview();
-  });
-  document.getElementById("excelImportSelectNoneBtn").addEventListener("click", ()=>{
-    excelImportCandidates.forEach(x=>x.selected=false);
-    renderExcelImportPreview();
+  }
+  function setupExcelImportDropdown(btnId, menuId, onPick){
+    const btn = document.getElementById(btnId);
+    const menu = document.getElementById(menuId);
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      document.querySelectorAll(".excel-import-dd-menu.open").forEach(m=>{ if(m!==menu) m.classList.remove("open"); });
+      menu.classList.toggle("open");
+    });
+    menu.querySelectorAll("button[data-scope]").forEach(opt=>{
+      opt.addEventListener("click", ()=>{
+        onPick(opt.dataset.scope);
+        menu.classList.remove("open");
+      });
+    });
+  }
+  setupExcelImportDropdown("excelImportSelectBtn", "excelImportSelectMenu", (scope)=>excelImportSetSelected(scope, true));
+  setupExcelImportDropdown("excelImportDeselectBtn", "excelImportDeselectMenu", (scope)=>excelImportSetSelected(scope, false));
+  document.addEventListener("click", ()=>{
+    document.querySelectorAll(".excel-import-dd-menu.open").forEach(m=>m.classList.remove("open"));
   });
   document.getElementById("excelImportCancelBtn").addEventListener("click", ()=>{
     excelImportCandidates = [];
