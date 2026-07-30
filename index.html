@@ -1116,6 +1116,7 @@
           </div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-soft cal-today-btn" id="gotoToday">오늘</button>
+            <button class="btn btn-soft btn-sm" id="exportEventsBtn">📤 엑셀로 내보내기</button>
             <button class="btn btn-primary btn-sm" id="addEventBtn">+ 일정 추가</button>
           </div>
         </div>
@@ -1642,6 +1643,26 @@
       <button class="btn btn-danger hidden" id="incomeDeleteBtn">삭제</button>
       <button class="btn btn-soft" id="incomeCancelBtn">취소</button>
       <button class="btn btn-primary" id="incomeSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="exportEventsModalOverlay">
+  <div class="modal">
+    <h2>일정 엑셀로 내보내기</h2>
+    <div class="form-grid2">
+      <div class="form-row">
+        <label>시작일</label>
+        <input type="date" id="exportEventsStart">
+      </div>
+      <div class="form-row">
+        <label>종료일</label>
+        <input type="date" id="exportEventsEnd">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-soft" id="exportEventsCancelBtn">취소</button>
+      <button class="btn btn-primary" id="exportEventsConfirmBtn">내보내기</button>
     </div>
   </div>
 </div>
@@ -2604,6 +2625,55 @@
     closeTimeDropdown();
   }
   document.getElementById("addEventBtn").addEventListener("click", ()=>openEventModal(null));
+
+  /* ============ 일정 엑셀로 내보내기 ============ */
+  const RECUR_LABEL = { none:"반복 안 함", daily:"매일", weekly:"매주", monthly:"매월", yearly:"매년" };
+  document.getElementById("exportEventsBtn").addEventListener("click", ()=>{
+    const monthStart = new Date(viewYear, viewMonth, 1);
+    const monthEnd = new Date(viewYear, viewMonth+1, 0);
+    document.getElementById("exportEventsStart").value = fmtDate(monthStart);
+    document.getElementById("exportEventsEnd").value = fmtDate(monthEnd);
+    document.getElementById("exportEventsModalOverlay").classList.add("open");
+  });
+  document.getElementById("exportEventsCancelBtn").addEventListener("click", ()=>{
+    document.getElementById("exportEventsModalOverlay").classList.remove("open");
+  });
+  document.getElementById("exportEventsModalOverlay").addEventListener("click", (e)=>{
+    if(e.target.id === "exportEventsModalOverlay") document.getElementById("exportEventsModalOverlay").classList.remove("open");
+  });
+  document.getElementById("exportEventsConfirmBtn").addEventListener("click", ()=>{
+    const startStr = document.getElementById("exportEventsStart").value;
+    const endStr = document.getElementById("exportEventsEnd").value;
+    if(!startStr || !endStr){ toast("시작일과 종료일을 선택해주세요.", "error"); return; }
+    if(startStr > endStr){ toast("시작일이 종료일보다 늦을 수 없어요.", "error"); return; }
+
+    const occs = getOccurrencesInRange(parseDate(startStr), parseDate(endStr));
+    if(!occs.length){ toast("선택한 기간에 등록된 일정이 없어요.", "error"); return; }
+
+    const rows = occs
+      .slice()
+      .sort((a,b)=> a.dateStr === b.dateStr ? (a.ev.start||"").localeCompare(b.ev.start||"") : a.dateStr.localeCompare(b.dateStr))
+      .map(o=>({
+        "날짜": o.dateStr,
+        "제목": o.ev.title,
+        "카테고리": o.ev.category,
+        "시작 시간": o.ev.start || "",
+        "종료 시간": o.ev.end || "",
+        "장소": o.ev.location || "",
+        "메모": o.ev.desc || "",
+        "반복": RECUR_LABEL[o.ev.recur] || "반복 안 함",
+        "중요 일정": o.ev.important ? "Y" : "",
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{wch:11},{wch:30},{wch:8},{wch:9},{wch:9},{wch:16},{wch:24},{wch:9},{wch:8}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "일정");
+    XLSX.writeFile(wb, `일정_${startStr}_${endStr}.xlsx`);
+
+    document.getElementById("exportEventsModalOverlay").classList.remove("open");
+    toast(`일정 ${rows.length}건을 엑셀로 내보냈습니다.`, "success");
+  });
   document.getElementById("eventCancelBtn").addEventListener("click", closeEventModal);
   document.getElementById("eventMapBtn").addEventListener("click", ()=>{
     const loc = document.getElementById("eventLocation").value.trim();
