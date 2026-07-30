@@ -308,7 +308,7 @@
   .search-box input{
     border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text);
   }
-  select, input[type=text], input[type=password], input[type=date], input[type=time], textarea{
+  select, input[type=text], input[type=password], input[type=date], input[type=time], input[type=month], textarea{
     font-family:inherit;
     background:var(--card-soft);
     border:1px solid var(--border);
@@ -322,12 +322,12 @@
     border-color:var(--primary);
     box-shadow:0 0 0 3px var(--primary-soft);
   }
-  /* Let native date/time picker icons, popups and the clear (X) button follow the app's theme */
-  input[type=date], input[type=time]{
+  /* Let native date/time/month picker icons, popups and the clear (X) button follow the app's theme */
+  input[type=date], input[type=time], input[type=month]{
     color-scheme: light;
     cursor:pointer;
   }
-  html[data-theme="dark"] input[type=date], html[data-theme="dark"] input[type=time]{
+  html[data-theme="dark"] input[type=date], html[data-theme="dark"] input[type=time], html[data-theme="dark"] input[type=month]{
     color-scheme: dark;
   }
 
@@ -2836,7 +2836,7 @@
     { cat:"일일업무", color:"indigo", sub:"부실채권 관리", title:"내용증명서 답변/미회수 채권 법적조치", freq:"수시" },
     { cat:"일일업무", color:"indigo", sub:"일계표 작성", title:"일일 발생된 수입,지출 전표기장/집계/결재", freq:"매일" },
 
-    { cat:"지출", color:"amber", sub:"CM현장경비", title:"CM현장경비 사용내역 확인/전산입력/집행", freq:"월 1회" },
+    { cat:"지출", color:"amber", sub:"CM현장경비", title:"CM현장경비 사용내역 확인/전산입력/집행", freq:"월 1회(3일)" },
     { cat:"지출", color:"amber", sub:"경비지불", title:"경비지불 신청서 취합/전산입력/집행", freq:"매주 수요일" },
     { cat:"지출", color:"amber", sub:"법인카드", title:"임원및 공용법인카드 수불/사용내역서 취합/전산입력", freq:"수시" },
     { cat:"지출", color:"amber", sub:"해외출장비", title:"해외출장지급서 작성/결재/집행", freq:"수시" },
@@ -2879,6 +2879,10 @@
       case "매주 금요일": return businessDays.filter(d=>d.getDay()===5);
       case "매월 말일": return [businessDays[businessDays.length-1]];
       case "월 1회": return [businessDays[Math.min(4, businessDays.length-1)]];
+      case "월 1회(3일)": {
+        const start = Math.min(4, businessDays.length-1);
+        return businessDays.slice(start, start+3);
+      }
       case "연 2회": case "연 4회": case "연 1회": return pickRandomDays(businessDays, 1);
       case "수시": return pickRandomDays(businessDays, 2);
       case "발생시": return pickRandomDays(businessDays, 1);
