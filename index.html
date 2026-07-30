@@ -2555,6 +2555,7 @@
         renderCalendar();
         renderDayEvents();
         renderExpenses();
+        renderIncomes();
       });
     });
     return el;
@@ -2564,11 +2565,13 @@
     viewMonth--; if(viewMonth<0){viewMonth=11; viewYear--;}
     renderCalendar();
     renderExpenses();
+    renderIncomes();
   });
   document.getElementById("nextMonth").addEventListener("click", ()=>{
     viewMonth++; if(viewMonth>11){viewMonth=0; viewYear++;}
     renderCalendar();
     renderExpenses();
+    renderIncomes();
   });
   document.getElementById("gotoToday").addEventListener("click", ()=>{
     const t = new Date();
@@ -2577,6 +2580,7 @@
     renderCalendar();
     renderDayEvents();
     renderExpenses();
+    renderIncomes();
   });
 
   ["searchInput","filterCategory","filterImportant"].forEach(id=>{
