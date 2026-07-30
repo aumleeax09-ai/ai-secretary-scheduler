@@ -814,12 +814,12 @@
 
   /* ---------- 연차(휴가) 관리: 종류별 탭, 기간선택 달력 ---------- */
   .leave-type-tabs, .leave-half-tabs{display:flex;gap:8px;}
-  .leave-type-btn, .leave-half-btn{
+  .leave-type-btn, .leave-half-btn, .export-format-btn{
     flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border);
     background:var(--card-soft);color:var(--text-sub);font-weight:700;font-size:13px;
     cursor:pointer;transition:background .15s,color .15s,border-color .15s;
   }
-  .leave-type-btn.active, .leave-half-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .leave-type-btn.active, .leave-half-btn.active, .export-format-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
   .leave-range-cal{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--card-soft);}
   .lr-title{flex:1;text-align:center;font-size:13px;font-weight:700;}
   .lr-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
@@ -1662,13 +1662,9 @@
     </div>
     <div class="form-row">
       <label>형식</label>
-      <div style="display:flex;gap:16px;">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;">
-          <input type="radio" name="exportEventsFormat" id="exportEventsFormatList" value="list" checked> 목록형
-        </label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;">
-          <input type="radio" name="exportEventsFormat" id="exportEventsFormatGrid" value="grid"> 달력표형
-        </label>
+      <div class="leave-type-tabs">
+        <button type="button" class="export-format-btn active" id="exportEventsFormatList" data-format="list">📋 목록형</button>
+        <button type="button" class="export-format-btn" id="exportEventsFormatGrid" data-format="grid">🗓️ 달력표형</button>
       </div>
     </div>
     <div class="modal-actions">
@@ -2690,6 +2686,11 @@
     }
   }
 
+  document.querySelectorAll(".export-format-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".export-format-btn").forEach(b=>b.classList.toggle("active", b===btn));
+    });
+  });
   document.getElementById("exportEventsBtn").addEventListener("click", ()=>{
     const monthStart = new Date(viewYear, viewMonth, 1);
     const monthEnd = new Date(viewYear, viewMonth+1, 0);
@@ -2712,7 +2713,7 @@
     const occs = getOccurrencesInRange(parseDate(startStr), parseDate(endStr));
     if(!occs.length){ toast("선택한 기간에 등록된 일정이 없어요.", "error"); return; }
 
-    const format = document.getElementById("exportEventsFormatGrid").checked ? "grid" : "list";
+    const format = document.getElementById("exportEventsFormatGrid").classList.contains("active") ? "grid" : "list";
     const wb = XLSX.utils.book_new();
 
     if(format === "grid"){
