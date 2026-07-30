@@ -1678,6 +1678,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -2634,11 +2635,26 @@
   document.getElementById("addEventBtn").addEventListener("click", ()=>openEventModal(null));
 
   /* ============ 일정 엑셀로 내보내기 ============ */
+  // 셀 테두리(선)는 SheetJS 무료판이 못 써서, 테두리를 지원하는 ExcelJS로 내보낸다.
   const RECUR_LABEL = { none:"반복 안 함", daily:"매일", weekly:"매주", monthly:"매월", yearly:"매년" };
   const EXPORT_WEEKDAYS = ["일","월","화","수","목","금","토"];
+  const EXPORT_THIN_BORDER = {
+    top:{style:"thin",color:{argb:"FFB0B7C3"}}, left:{style:"thin",color:{argb:"FFB0B7C3"}},
+    bottom:{style:"thin",color:{argb:"FFB0B7C3"}}, right:{style:"thin",color:{argb:"FFB0B7C3"}},
+  };
+  function downloadWorkbook(wb, filename){
+    return wb.xlsx.writeBuffer().then(buf=>{
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
 
   // 선택한 기간이 걸치는 달마다 시트를 하나씩 만들어, 화면에서 보던 달력 모양 그대로
-  // (요일 칸에 그날 일정이 들어간 표) 엑셀에 옮겨 담는다.
+  // (요일 칸에 그날 일정이 들어간 표, 테두리 포함) 엑셀에 옮겨 담는다.
   function buildEventGridWorkbook(wb, startStr, endStr, occs){
     const start = parseDate(startStr), end = parseDate(endStr);
     let cur = new Date(start.getFullYear(), start.getMonth(), 1);
@@ -2655,32 +2671,41 @@
         }
       });
 
-      const aoa = [[`${year}년 ${month+1}월`], EXPORT_WEEKDAYS];
+      const sheetName = `${year}-${String(month+1).padStart(2,"0")}`;
+      const ws = wb.addWorksheet(sheetName);
+      ws.columns = EXPORT_WEEKDAYS.map(()=>({ width: 24 }));
+
+      const titleRow = ws.addRow([`${year}년 ${month+1}월`]);
+      titleRow.height = 22;
+      ws.mergeCells(titleRow.number, 1, titleRow.number, 7);
+      titleRow.getCell(1).font = { bold: true, size: 13 };
+
+      const headerRow = ws.addRow(EXPORT_WEEKDAYS);
+      headerRow.height = 22;
+      headerRow.eachCell(c=>{ c.font = { bold: true }; c.alignment = { horizontal: "center" }; c.border = EXPORT_THIN_BORDER; });
+
       const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
-      let row = [];
+      let cells = [];
       for(let i=0; i<totalCells; i++){
         const dayNum = i - startOffset + 1;
         if(dayNum < 1 || dayNum > daysInMonth){
-          row.push("");
+          cells.push("");
         } else {
           const dateStr = fmtDate(new Date(year, month, dayNum));
           const evs = byDate[dateStr] || [];
           const lines = [`${dayNum}일`, ...evs.map(ev => (ev.start ? `[${ev.start}] ` : "") + ev.title)];
-          row.push(lines.join("\n"));
+          cells.push(lines.join("\n"));
         }
-        if(row.length === 7){ aoa.push(row); row = []; }
+        if(cells.length === 7){
+          const row = ws.addRow(cells);
+          row.height = 90;
+          row.eachCell({ includeEmpty: true }, c=>{
+            c.alignment = { wrapText: true, vertical: "top" };
+            c.border = EXPORT_THIN_BORDER;
+          });
+          cells = [];
+        }
       }
-
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws["!cols"] = EXPORT_WEEKDAYS.map(()=>({ wch: 24 }));
-      ws["!rows"] = aoa.map((_,idx)=> ({ hpx: idx < 2 ? 22 : 90 }));
-      ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:6} }];
-      Object.keys(ws).forEach(key=>{
-        if(key[0] === "!") return;
-        ws[key].s = { alignment: { wrapText: true, vertical: "top" } };
-      });
-      const sheetName = `${year}-${String(month+1).padStart(2,"0")}`;
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
       cur = new Date(year, month+1, 1);
     }
@@ -2714,7 +2739,7 @@
     if(!occs.length){ toast("선택한 기간에 등록된 일정이 없어요.", "error"); return; }
 
     const format = document.getElementById("exportEventsFormatGrid").classList.contains("active") ? "grid" : "list";
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
 
     if(format === "grid"){
       buildEventGridWorkbook(wb, startStr, endStr, occs);
@@ -2722,26 +2747,30 @@
       const rows = occs
         .slice()
         .sort((a,b)=> a.dateStr === b.dateStr ? (a.ev.start||"").localeCompare(b.ev.start||"") : a.dateStr.localeCompare(b.dateStr))
-        .map(o=>({
-          "날짜": o.dateStr,
-          "제목": o.ev.title,
-          "카테고리": o.ev.category,
-          "시작 시간": o.ev.start || "",
-          "종료 시간": o.ev.end || "",
-          "장소": o.ev.location || "",
-          "메모": o.ev.desc || "",
-          "반복": RECUR_LABEL[o.ev.recur] || "반복 안 함",
-          "중요 일정": o.ev.important ? "Y" : "",
-        }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      ws["!cols"] = [{wch:11},{wch:30},{wch:8},{wch:9},{wch:9},{wch:16},{wch:24},{wch:9},{wch:8}];
-      XLSX.utils.book_append_sheet(wb, ws, "일정");
+        .map(o=>[
+          o.dateStr, o.ev.title, o.ev.category, o.ev.start || "", o.ev.end || "",
+          o.ev.location || "", o.ev.desc || "", RECUR_LABEL[o.ev.recur] || "반복 안 함",
+          o.ev.important ? "Y" : "",
+        ]);
+      const ws = wb.addWorksheet("일정");
+      ws.columns = [
+        { width:11 },{ width:30 },{ width:8 },{ width:9 },{ width:9 },
+        { width:16 },{ width:24 },{ width:9 },{ width:8 },
+      ];
+      const headerRow = ws.addRow(["날짜","제목","카테고리","시작 시간","종료 시간","장소","메모","반복","중요 일정"]);
+      headerRow.eachCell(c=>{ c.font = { bold: true }; c.border = EXPORT_THIN_BORDER; });
+      rows.forEach(r=>{
+        const row = ws.addRow(r);
+        row.eachCell({ includeEmpty: true }, c=> c.border = EXPORT_THIN_BORDER);
+      });
     }
 
-    XLSX.writeFile(wb, `일정_${startStr}_${endStr}.xlsx`);
-
-    document.getElementById("exportEventsModalOverlay").classList.remove("open");
-    toast(`일정 ${occs.length}건을 엑셀로 내보냈습니다.`, "success");
+    downloadWorkbook(wb, `일정_${startStr}_${endStr}.xlsx`).then(()=>{
+      document.getElementById("exportEventsModalOverlay").classList.remove("open");
+      toast(`일정 ${occs.length}건을 엑셀로 내보냈습니다.`, "success");
+    }).catch(()=>{
+      toast("엑셀 내보내기 중 오류가 발생했어요.", "error");
+    });
   });
   document.getElementById("eventCancelBtn").addEventListener("click", closeEventModal);
   document.getElementById("eventMapBtn").addEventListener("click", ()=>{
