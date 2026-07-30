@@ -684,6 +684,7 @@
      기능도 눌러볼 수 있다 — 다만 실제로 데이터가 바뀌는 순간(저장/추가/삭제/체크)만 막는다.
      (저장 버튼을 눌러도 서버(save_scheduler_state RPC)에서 열람자 권한을 다시 한번 막아준다.) */
   .role-viewer #restoreBtn{display:none !important;}
+  .role-viewer #sampleDataBtn{display:none !important;}
   .role-viewer .checkbox{pointer-events:none;}
   .role-viewer #quickAddEventInput{pointer-events:none !important;opacity:.55;}
   .role-viewer #excelImportFile,
@@ -717,7 +718,8 @@
   .role-member #incomeDeleteBtn,
   .role-member #expenseBulkDeleteBtn,
   .role-member #incomeBulkDeleteBtn,
-  .role-member #restoreBtn{display:none !important;}
+  .role-member #restoreBtn,
+  .role-member #sampleDataBtn{display:none !important;}
 
   /* ---------- Modal ---------- */
   .modal-overlay{
@@ -1040,6 +1042,39 @@
   </div>
 </div>
 
+<!-- 관리자: 샘플 데이터 관리 -->
+<div class="modal-overlay" id="sampleDataModalOverlay">
+  <div class="modal" style="max-width:480px;">
+    <h2>🧪 샘플 데이터 관리</h2>
+    <div style="font-size:12px;color:var(--text-sub);margin:-8px 0 14px;line-height:1.6;">
+      회사 통상업무를 기준으로 만든 가상의 한 달치 일정입니다. 실제 업무와 섞이지 않도록 아래에서 지정한 달(기본값: 벤치마킹용 2099년 1월)에만 만들어집니다.
+    </div>
+    <div class="form-row">
+      <label>샘플 대상 월</label>
+      <input type="month" id="sampleMonthInput" value="2099-01">
+    </div>
+    <div class="form-row">
+      <label>포함할 업무 분류</label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12.5px;">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="계약" checked> 계약</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="결산" checked> 결산</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="신고" checked> 신고</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="일일업무" checked> 일일업무</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="지출" checked> 지출</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="기타" checked> 기타</label>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
+      <button class="btn btn-soft" id="sampleExcelBtn">📊 샘플 엑셀 만들기</button>
+      <button class="btn btn-primary" id="sampleGenerateBtn">✨ 샘플데이터 생성</button>
+      <button class="btn btn-danger" id="sampleResetBtn">🗑️ DB 초기화 (샘플로 만든 항목만 삭제)</button>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn btn-soft" id="sampleDataCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="app" id="appRoot" style="display:none;">
 
   <!-- TOP BAR -->
@@ -1067,6 +1102,7 @@
         <div class="action-divider"></div>
         <button class="icon-btn" id="backupBtn" title="JSON 백업" aria-label="JSON 백업"><span class="arrow-wide">↓</span></button>
         <button class="icon-btn" id="restoreBtn" title="JSON 복원" aria-label="JSON 복원"><span class="arrow-wide">↑</span></button>
+        <button class="icon-btn" id="sampleDataBtn" title="샘플 데이터 관리" aria-label="샘플 데이터 관리">🧪</button>
       </div>
       <input type="file" id="restoreFile" accept="application/json" class="hidden">
       <div class="user-badge">
@@ -2766,6 +2802,171 @@
       toast("엑셀 내보내기 중 오류가 발생했어요.", "error");
     });
   });
+
+  /* ============ 샘플 데이터 관리 (관리자 전용) ============ */
+  // 회사 통상업무(대분류/중분류/세부내역/비고=빈도) 기준으로 만든 작업 템플릿.
+  // 실제 데이터와 절대 섞이지 않도록, 생성된 항목은 항상 sample:true로 표시하고
+  // 기본적으로 실제로 아무도 안 쓰는 가상의 달(2099-01)에만 만들어진다.
+  const SAMPLE_TASK_TEMPLATES = [
+    { cat:"계약", color:"blue", sub:"발주 계약", title:"발주처 계약서 전산등록/결재", freq:"수시" },
+    { cat:"계약", color:"blue", sub:"외주 계약", title:"외주품의서 검토/계약/전산등록", freq:"수시" },
+    { cat:"계약", color:"blue", sub:"외주 계약", title:"외주비 지출결의/회람/집행", freq:"매월 말일" },
+
+    { cat:"결산", color:"purple", sub:"외부결산", title:"결산분개/각 계정의 원장마감", freq:"연 2회" },
+    { cat:"결산", color:"purple", sub:"외부결산", title:"PJ별 작업진행률 산출", freq:"연 2회" },
+    { cat:"결산", color:"purple", sub:"외부결산", title:"세무조정 계산서 작성", freq:"연 2회" },
+    { cat:"결산", color:"purple", sub:"내부결산", title:"일계표 집계", freq:"매월 말일" },
+    { cat:"결산", color:"purple", sub:"내부결산", title:"자금운용결산 자료 산출", freq:"연 4회" },
+
+    { cat:"신고", color:"red", sub:"부가세 신고", title:"매입·매출세금계산서 집계/신고 납부", freq:"연 4회" },
+    { cat:"신고", color:"red", sub:"법인세 신고", title:"장부 결산/신고 납부", freq:"연 2회" },
+    { cat:"신고", color:"red", sub:"주민세(법인세할)신고", title:"안분내역서 작성/신고 납부", freq:"연 1회" },
+
+    { cat:"일일업무", color:"indigo", sub:"은행", title:"입·출금/대출약정및 할인/제반업무", freq:"수시" },
+    { cat:"일일업무", color:"indigo", sub:"수금및 수금예정", title:"전자세금계산서 발행/발주처 수금일자 확인", freq:"수시" },
+    { cat:"일일업무", color:"indigo", sub:"수금및 수금예정", title:"본부별 향후 6개월 수금예정표 작성/전달", freq:"수시" },
+    { cat:"일일업무", color:"indigo", sub:"부실채권 관리", title:"내용증명서 답변/미회수 채권 법적조치", freq:"수시" },
+    { cat:"일일업무", color:"indigo", sub:"일계표 작성", title:"일일 발생된 수입,지출 전표기장/집계/결재", freq:"매일" },
+
+    { cat:"지출", color:"amber", sub:"CM현장경비", title:"CM현장경비 사용내역 확인/전산입력/집행", freq:"월 1회" },
+    { cat:"지출", color:"amber", sub:"경비지불", title:"경비지불 신청서 취합/전산입력/집행", freq:"매주 수요일" },
+    { cat:"지출", color:"amber", sub:"법인카드", title:"임원및 공용법인카드 수불/사용내역서 취합/전산입력", freq:"수시" },
+    { cat:"지출", color:"amber", sub:"해외출장비", title:"해외출장지급서 작성/결재/집행", freq:"수시" },
+    { cat:"지출", color:"amber", sub:"해외출장비", title:"여비 정산서 작성/결재", freq:"수시" },
+    { cat:"지출", color:"amber", sub:"합사경비", title:"합사경비 정산서 작성/정산경비 청구", freq:"발생시" },
+    { cat:"지출", color:"amber", sub:"통신비", title:"유·무선 통신비 세금계산서 취합/전산입력", freq:"월 1회" },
+    { cat:"지출", color:"amber", sub:"교통비", title:"부서별 교통비 사용내역확인/집행", freq:"월 1회" },
+    { cat:"지출", color:"amber", sub:"연회비", title:"임·직원 협회 관리/연회비 납부", freq:"연 1회" },
+
+    { cat:"기타", color:"gray", sub:"제증명서발급및 관리", title:"국세/시세/등기부등본/인감증명서 발급및 관리", freq:"수시" },
+    { cat:"기타", color:"gray", sub:"자금현황", title:"주간 수입및 지출내역 작성/결재", freq:"매주 금요일" },
+    { cat:"기타", color:"gray", sub:"주식양도 양수", title:"계약서 작성/세무서 신고/세금납부", freq:"발생시" },
+  ];
+
+  function getBusinessDaysInMonth(year, month){
+    const days = [];
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    for(let d=1; d<=daysInMonth; d++){
+      const date = new Date(year, month, d);
+      const dow = date.getDay();
+      if(dow !== 0 && dow !== 6) days.push(date);
+    }
+    return days;
+  }
+  function pickRandomDays(days, n){
+    const pool = days.slice();
+    const picked = [];
+    n = Math.min(n, pool.length);
+    for(let i=0; i<n; i++){
+      const idx = Math.floor(Math.random()*pool.length);
+      picked.push(pool.splice(idx,1)[0]);
+    }
+    return picked.sort((a,b)=>a-b);
+  }
+  function expandSampleFrequency(freq, businessDays){
+    if(!businessDays.length) return [];
+    switch(freq){
+      case "매일": return businessDays.slice();
+      case "매주 수요일": return businessDays.filter(d=>d.getDay()===3);
+      case "매주 금요일": return businessDays.filter(d=>d.getDay()===5);
+      case "매월 말일": return [businessDays[businessDays.length-1]];
+      case "월 1회": return [businessDays[Math.min(4, businessDays.length-1)]];
+      case "연 2회": case "연 4회": case "연 1회": return pickRandomDays(businessDays, 1);
+      case "수시": return pickRandomDays(businessDays, 2);
+      case "발생시": return pickRandomDays(businessDays, 1);
+      default: return pickRandomDays(businessDays, 1);
+    }
+  }
+  function getSelectedSampleCategories(){
+    const boxes = document.querySelectorAll("#sampleDataModalOverlay .sample-cat-check:checked");
+    return new Set(Array.from(boxes).map(b=>b.value));
+  }
+  // yearMonthStr: "YYYY-MM" (<input type=month> 값)
+  function buildSampleRows(yearMonthStr, selectedCats){
+    const [y,m] = yearMonthStr.split("-").map(Number);
+    const year = y, month = m-1;
+    const businessDays = getBusinessDaysInMonth(year, month);
+    const rows = [];
+    SAMPLE_TASK_TEMPLATES.forEach(t=>{
+      if(!selectedCats.has(t.cat)) return;
+      expandSampleFrequency(t.freq, businessDays).forEach(d=>{
+        rows.push({ date: fmtDate(d), cat: t.cat, sub: t.sub, title: t.title, freq: t.freq, color: t.color });
+      });
+    });
+    rows.sort((a,b)=> a.date.localeCompare(b.date));
+    return rows;
+  }
+
+  document.getElementById("sampleDataBtn").addEventListener("click", ()=>{
+    document.getElementById("sampleDataModalOverlay").classList.add("open");
+  });
+  document.getElementById("sampleDataCloseBtn").addEventListener("click", ()=>{
+    document.getElementById("sampleDataModalOverlay").classList.remove("open");
+  });
+  document.getElementById("sampleDataModalOverlay").addEventListener("click", (e)=>{
+    if(e.target.id === "sampleDataModalOverlay") document.getElementById("sampleDataModalOverlay").classList.remove("open");
+  });
+
+  document.getElementById("sampleExcelBtn").addEventListener("click", ()=>{
+    const monthStr = document.getElementById("sampleMonthInput").value;
+    if(!monthStr){ toast("샘플 대상 월을 선택해주세요.", "error"); return; }
+    const selectedCats = getSelectedSampleCategories();
+    if(!selectedCats.size){ toast("포함할 업무 분류를 하나 이상 선택해주세요.", "error"); return; }
+    const rows = buildSampleRows(monthStr, selectedCats);
+    if(!rows.length){ toast("생성할 샘플 항목이 없어요.", "error"); return; }
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("샘플 일정");
+    ws.columns = [{width:12},{width:10},{width:18},{width:38},{width:12}];
+    const headerRow = ws.addRow(["날짜","대분류","중분류","세부내역","비고"]);
+    headerRow.eachCell(c=>{ c.font = { bold: true }; c.border = EXPORT_THIN_BORDER; });
+    rows.forEach(r=>{
+      const row = ws.addRow([r.date, r.cat, r.sub, r.title, r.freq]);
+      row.eachCell({ includeEmpty: true }, c=> c.border = EXPORT_THIN_BORDER);
+    });
+    downloadWorkbook(wb, `샘플데이터_${monthStr}.xlsx`).then(()=>{
+      toast(`샘플 엑셀(${rows.length}건)을 내보냈습니다.`, "success");
+    }).catch(()=>{
+      toast("샘플 엑셀을 만드는 중 오류가 발생했어요.", "error");
+    });
+  });
+
+  document.getElementById("sampleGenerateBtn").addEventListener("click", ()=>{
+    const monthStr = document.getElementById("sampleMonthInput").value;
+    if(!monthStr){ toast("샘플 대상 월을 선택해주세요.", "error"); return; }
+    const selectedCats = getSelectedSampleCategories();
+    if(!selectedCats.size){ toast("포함할 업무 분류를 하나 이상 선택해주세요.", "error"); return; }
+    const rows = buildSampleRows(monthStr, selectedCats);
+    if(!rows.length){ toast("생성할 샘플 항목이 없어요.", "error"); return; }
+
+    rows.forEach(r=>{
+      events.push({
+        id: uid(), title: r.title, date: r.date, category: "업무",
+        start: "", end: "", location: "", desc: `${r.cat} · ${r.sub} · ${r.freq}`,
+        recur: "none", recurEnd: "", important: false, importantMark: "star",
+        color: r.color, sample: true,
+      });
+    });
+    saveEvents();
+    renderCalendar();
+    renderDayEvents();
+    renderAISummary();
+    toast(`샘플 일정 ${rows.length}건을 ${monthStr}에 생성했습니다.`, "success");
+    document.getElementById("sampleDataModalOverlay").classList.remove("open");
+  });
+
+  document.getElementById("sampleResetBtn").addEventListener("click", ()=>{
+    const count = events.filter(e=>e.sample).length;
+    if(!count){ toast("삭제할 샘플 데이터가 없어요.", "info"); return; }
+    if(!confirm(`샘플로 생성된 일정 ${count}건을 삭제할까요? (실제 업무 데이터는 건드리지 않습니다)`)) return;
+    events = events.filter(e=>!e.sample);
+    saveEvents();
+    renderCalendar();
+    renderDayEvents();
+    renderAISummary();
+    toast(`샘플 일정 ${count}건을 삭제했습니다.`, "info");
+  });
+
   document.getElementById("eventCancelBtn").addEventListener("click", closeEventModal);
   document.getElementById("eventMapBtn").addEventListener("click", ()=>{
     const loc = document.getElementById("eventLocation").value.trim();
