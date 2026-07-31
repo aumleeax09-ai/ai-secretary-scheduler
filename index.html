@@ -591,9 +591,11 @@
   .tag-exp-etc{background:#f1f5f9;color:#64748b;}
   html[data-theme="dark"] .tag-exp-etc{background:#252831;color:#94a3b8;}
   .expense-amount{font-weight:800;color:var(--text);white-space:nowrap;}
-  .cal-event-pill.expense{color:var(--good);}
+  .cal-event-pill.expense{color:var(--good);cursor:pointer;}
+  .cal-event-pill.expense:hover{text-decoration:underline;}
   .income-amount{font-weight:800;color:var(--good);white-space:nowrap;}
-  .cal-event-pill.income{color:var(--primary);}
+  .cal-event-pill.income{color:var(--primary);cursor:pointer;}
+  .cal-event-pill.income:hover{text-decoration:underline;}
   .tag-inc-service{background:#dbeafe;color:#2563eb;}
   html[data-theme="dark"] .tag-inc-service{background:#152238;color:#60a5fa;}
   .tag-inc-salary{background:#ede9fe;color:#7c3aed;}
@@ -2665,13 +2667,13 @@
         pillsHtml += `<div class="cal-more">+${evs.length-maxShow}개 더보기</div>`;
       }
       exps.slice(0,2).forEach(ex=>{
-        pillsHtml += `<div class="cal-event-pill expense">💰 ${escapeHtml(ex.title)}</div>`;
+        pillsHtml += `<div class="cal-event-pill expense" data-exp-id="${ex.id}" title="클릭해서 수정·삭제">💰 ${escapeHtml(ex.title)}</div>`;
       });
       if(exps.length > 2){
         pillsHtml += `<div class="cal-more">지출 +${exps.length-2}건</div>`;
       }
       incs.slice(0,2).forEach(inc=>{
-        pillsHtml += `<div class="cal-event-pill income">📥 ${escapeHtml(inc.title)}</div>`;
+        pillsHtml += `<div class="cal-event-pill income" data-inc-id="${inc.id}" title="클릭해서 수정·삭제">📥 ${escapeHtml(inc.title)}</div>`;
       });
       if(incs.length > 2){
         pillsHtml += `<div class="cal-more">수금 +${incs.length-2}건</div>`;
@@ -2687,6 +2689,20 @@
       cell.addEventListener("click", selectThisDay);
       cell.addEventListener("keydown", (e)=>{
         if(e.key === "Enter" || e.key === " "){ e.preventDefault(); selectThisDay(); }
+      });
+      cell.querySelectorAll(".cal-event-pill.expense[data-exp-id]").forEach(pillEl=>{
+        pillEl.addEventListener("click", (e)=>{
+          e.stopPropagation();
+          const found = expenses.find(x=>x.id === pillEl.dataset.expId);
+          if(found) openExpenseModal(found);
+        });
+      });
+      cell.querySelectorAll(".cal-event-pill.income[data-inc-id]").forEach(pillEl=>{
+        pillEl.addEventListener("click", (e)=>{
+          e.stopPropagation();
+          const found = incomes.find(x=>x.id === pillEl.dataset.incId);
+          if(found) openIncomeModal(found);
+        });
       });
       grid.appendChild(cell);
     }
