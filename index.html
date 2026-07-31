@@ -290,7 +290,7 @@
     gap:20px;
   }
   .finance-col{flex:1;min-width:0;}
-  .dashboard-row{display:flex;gap:24px;align-items:flex-start;}
+  .dashboard-row{display:flex;gap:24px;align-items:stretch;}
   .dashboard-charts-col{flex:1.4;min-width:0;}
   .dashboard-table-col{flex:1;min-width:0;}
   @media (max-width: 980px){
@@ -1333,6 +1333,7 @@
           <div id="dashboardCollectChart"></div>
         </div>
       </div>
+      <div class="finance-divider"></div>
       <div class="dashboard-table-col">
         <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">상세 표</div>
         <div class="finance-layout">
@@ -4733,25 +4734,26 @@
   // 수주/수금표를 각각 따로(구분+목표+실적+달성율 4칸) 만들어서 옆으로 붙이면
   // 스크롤 없이 좌우로 나란히 볼 수 있다 — 수금관리/지출관리 카드와 같은 방식.
   function buildDashboardTableHalfHtml(rows, targetKey, actualKey){
-    const th = (label)=>`<th style="padding:7px 8px;text-align:right;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">${label}</th>`;
-    const tdNum = (v)=>`<td style="padding:6px 8px;text-align:right;white-space:nowrap;">${v.toFixed(2)}억</td>`;
+    const th = (label)=>`<th style="padding:7px 8px;text-align:right;font-weight:700;color:var(--text-sub);border:1px solid var(--border);white-space:nowrap;">${label}</th>`;
+    const tdNum = (v)=>`<td style="padding:6px 8px;text-align:right;border:1px solid var(--border);white-space:nowrap;">${v.toFixed(2)}억</td>`;
     const tdPct = (target, actual)=>{
       const pct = target ? Math.round((actual/target)*100) : 0;
-      return `<td style="padding:6px 8px;text-align:right;white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:2px 7px;font-size:11px;">${pct}%</span></td>`;
+      return `<td style="padding:6px 8px;text-align:right;border:1px solid var(--border);white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:2px 7px;font-size:11px;">${pct}%</span></td>`;
     };
-    const bodyRows = rows.map((r,i)=>{
+    const bodyRows = rows.map((r)=>{
       const isSubtotal = r.label === "소계" || r.label === "합계";
+      const rowBg = isSubtotal ? "background:var(--card-soft);" : "";
       return `
-      <tr style="${isSubtotal ? "background:var(--card-soft);border-top:1px solid var(--border);" : (i%2? "background:var(--card-soft);":"")}">
-        <td style="padding:6px 8px;font-weight:${isSubtotal?800:700};white-space:nowrap;">${escapeHtml(r.label)}</td>
+      <tr style="${rowBg}">
+        <td style="padding:6px 8px;font-weight:${isSubtotal?800:700};border:1px solid var(--border);white-space:nowrap;">${escapeHtml(r.label)}</td>
         ${tdNum(r[targetKey])}
         ${tdNum(r[actualKey])}
         ${tdPct(r[targetKey], r[actualKey])}
       </tr>`;
     }).join("");
     return `<table style="border-collapse:collapse;font-size:12px;width:100%;">
-      <thead><tr>
-        <th style="padding:7px 8px;text-align:left;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">구분</th>
+      <thead><tr style="background:var(--card-soft);">
+        <th style="padding:7px 8px;text-align:left;font-weight:700;color:var(--text-sub);border:1px solid var(--border);white-space:nowrap;">구분</th>
         ${th("목표")}${th("실적")}${th("달성율")}
       </tr></thead>
       <tbody>${bodyRows}</tbody>
