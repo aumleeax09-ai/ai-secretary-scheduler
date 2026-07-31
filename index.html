@@ -1320,9 +1320,13 @@
       <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수주 목표 대비 실적</div>
       <div id="dashboardOrderChart"></div>
     </div>
-    <div>
+    <div style="margin-bottom:18px;">
       <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수금 목표 대비 실적</div>
       <div id="dashboardCollectChart"></div>
+    </div>
+    <div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">상세 표</div>
+      <div id="dashboardTable" style="overflow-x:auto;"></div>
     </div>
   </div>
 
@@ -4659,7 +4663,7 @@
   }
   function buildDashboardChartSvg(rows, targetKey, actualKey){
     const maxVal = Math.max(1, ...rows.flatMap(r=>[r[targetKey], r[actualKey]]));
-    const groupW = 64, barW = 20, gap = 4, chartH = 160;
+    const groupW = 72, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 24;
     const width = rows.length * groupW;
     const bars = rows.map((r, i)=>{
       const gx = i * groupW;
@@ -4667,15 +4671,44 @@
       const actualH = Math.round((r[actualKey]/maxVal) * chartH);
       const targetX = gx + (groupW - (barW*2+gap))/2;
       const actualX = targetX + barW + gap;
+      const targetY = topPad + (chartH - targetH);
+      const actualY = topPad + (chartH - actualH);
       const pct = r[targetKey] ? Math.round((r[actualKey]/r[targetKey])*100) : 0;
       return `<g>
         <title>${escapeHtml(r.label)} — 목표 ${r[targetKey].toFixed(2)}억 / 실적 ${r[actualKey].toFixed(2)}억 (${pct}%)</title>
-        <rect x="${targetX}" y="${chartH-targetH}" width="${barW}" height="${targetH}" fill="var(--border)" rx="2"/>
-        <rect x="${actualX}" y="${chartH-actualH}" width="${barW}" height="${actualH}" fill="var(--primary)" rx="2"/>
-        <text x="${gx + groupW/2}" y="${chartH+16}" text-anchor="middle" font-size="10" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
+        <rect x="${targetX}" y="${targetY}" width="${barW}" height="${targetH}" fill="var(--border)" rx="2"/>
+        <rect x="${actualX}" y="${actualY}" width="${barW}" height="${actualH}" fill="var(--primary)" rx="2"/>
+        <text x="${targetX + barW/2}" y="${Math.max(targetY-4, 9)}" text-anchor="middle" font-size="8.5" fill="var(--text-sub)">${r[targetKey].toFixed(1)}</text>
+        <text x="${actualX + barW/2}" y="${Math.max(actualY-4, 9)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--primary)">${r[actualKey].toFixed(1)}</text>
+        <text x="${gx + groupW/2}" y="${topPad + chartH + 16}" text-anchor="middle" font-size="10" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
       </g>`;
     }).join("");
-    return `<svg viewBox="0 0 ${width} ${chartH+24}" width="${Math.max(width,320)}" height="${chartH+24}">${bars}</svg>`;
+    return `<svg viewBox="0 0 ${width} ${topPad+chartH+bottomPad}" width="${Math.max(width,320)}" height="${topPad+chartH+bottomPad}">${bars}</svg>`;
+  }
+  function buildDashboardTableHtml(rows){
+    const th = (label)=>`<th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">${label}</th>`;
+    const tdNum = (v)=>`<td style="padding:6px 10px;text-align:right;white-space:nowrap;">${v.toFixed(2)}억</td>`;
+    const tdPct = (target, actual)=>{
+      const pct = target ? Math.round((actual/target)*100) : 0;
+      return `<td style="padding:6px 10px;text-align:right;white-space:nowrap;color:var(--text-sub);">${pct}%</td>`;
+    };
+    const bodyRows = rows.map((r,i)=>`
+      <tr style="${i%2? "background:var(--card-soft);":""}">
+        <td style="padding:6px 10px;font-weight:700;white-space:nowrap;">${escapeHtml(r.label)}</td>
+        ${tdNum(r.orderTarget)}
+        ${tdNum(r.orderActual)}
+        ${tdPct(r.orderTarget, r.orderActual)}
+        ${tdNum(r.collectTarget)}
+        ${tdNum(r.collectActual)}
+        ${tdPct(r.collectTarget, r.collectActual)}
+      </tr>`).join("");
+    return `<table style="border-collapse:collapse;font-size:12px;width:100%;min-width:520px;">
+      <thead><tr>
+        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">구분</th>
+        ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("수금목표")}${th("수금실적")}${th("달성율")}
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>`;
   }
   function renderDashboard(){
     const card = document.getElementById("dashboardCard");
@@ -4687,6 +4720,7 @@
     document.getElementById("dashboardUpdatedLabel").textContent = dashboardData.updatedAt ? `업데이트 ${dashboardData.updatedAt}` : "";
     document.getElementById("dashboardOrderChart").innerHTML = `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
     document.getElementById("dashboardCollectChart").innerHTML = `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
+    document.getElementById("dashboardTable").innerHTML = buildDashboardTableHtml(dashboardData.rows);
   }
 
   function renderExcelImportPreview(){
