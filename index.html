@@ -24,6 +24,8 @@
     --warn-soft:#fef3c7;
     --good:#10b981;
     --good-soft:#d1fae5;
+    --dash-warn:#eab308;
+    --dash-warn-soft:#fef9c3;
     --shadow: 0 2px 8px rgba(30,41,59,.06), 0 8px 24px rgba(30,41,59,.05);
     --shadow-lg: 0 8px 30px rgba(30,41,59,.12);
     --radius:18px;
@@ -50,6 +52,8 @@
     --warn-soft:#3a3120;
     --good:#34d399;
     --good-soft:#1c332b;
+    --dash-warn:#facc15;
+    --dash-warn-soft:#3f3706;
     --shadow: 0 2px 10px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.3);
     --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
     --today-ring:#818cf8;
@@ -247,6 +251,7 @@
   }
   .chip-info{background:var(--primary-soft);color:var(--primary);}
   .chip-warn{background:var(--warn-soft);color:var(--warn);}
+  .chip-dash-warn{background:var(--dash-warn-soft);color:var(--dash-warn);}
   .chip-good{background:var(--good-soft);color:var(--good);}
   .chip-danger{background:var(--danger-soft);color:var(--danger);}
 
@@ -4678,19 +4683,19 @@
   function dashboardStatusColor(target, actual){
     const pct = target ? (actual/target)*100 : 0;
     if(pct >= 70) return "var(--good)";
-    if(pct >= 40) return "var(--warn)";
+    if(pct >= 40) return "var(--dash-warn)";
     return "var(--danger)";
   }
   function dashboardStatusChipClass(target, actual){
     const pct = target ? (actual/target)*100 : 0;
     if(pct >= 70) return "chip-good";
-    if(pct >= 40) return "chip-warn";
+    if(pct >= 40) return "chip-dash-warn";
     return "chip-danger";
   }
   function dashboardStatusSoftBg(target, actual){
     const pct = target ? (actual/target)*100 : 0;
     if(pct >= 70) return "var(--good-soft)";
-    if(pct >= 40) return "var(--warn-soft)";
+    if(pct >= 40) return "var(--dash-warn-soft)";
     return "var(--danger-soft)";
   }
   // 위쪽만 둥근 막대(바닥은 직각) — 데이터가 실제로 쌓이는 모양에 가깝게.
@@ -4765,7 +4770,7 @@
     return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-sub);margin-bottom:8px;">
       <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--border);display:inline-block;"></span>목표</span>
       <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--good);display:inline-block;"></span>실적 70%↑</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--warn);display:inline-block;"></span>실적 40~69%</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--dash-warn);display:inline-block;"></span>실적 40~69%</span>
       <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block;"></span>실적 40%미만</span>
     </div>`;
   }
