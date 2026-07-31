@@ -4759,9 +4759,9 @@
   }
   function buildDashboardTableLegendHtml(){
     return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-sub);margin-bottom:10px;">
-      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--good);display:inline-block;"></span>달성율 70%↑</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--warn);display:inline-block;"></span>달성율 40~69%</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block;"></span>달성율 40%미만</span>
+      <span style="display:flex;align-items:center;gap:5px;">🟢 달성율 70%이상</span>
+      <span style="display:flex;align-items:center;gap:5px;">🟡 달성율 40~69%</span>
+      <span style="display:flex;align-items:center;gap:5px;">🔴 달성율 40%미만</span>
     </div>`;
   }
   // 수주/수금을 한 표에 같이 보여준다 — 헤더(구분)와 소계/합계 줄만 회색, 나머지는
