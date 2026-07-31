@@ -1311,6 +1311,21 @@
     </div>
   </div>
 
+  <div class="card" id="dashboardCard" style="display:none;">
+    <div class="card-title">
+      <span>📊 본부별 수주·수금 현황</span>
+      <span class="section-subtitle" id="dashboardUpdatedLabel"></span>
+    </div>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수주 목표 대비 실적</div>
+      <div id="dashboardOrderChart"></div>
+    </div>
+    <div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수금 목표 대비 실적</div>
+      <div id="dashboardCollectChart"></div>
+    </div>
+  </div>
+
   <div class="card finance-card">
     <div class="finance-layout">
       <div class="finance-col">
@@ -1747,6 +1762,7 @@
   const LS_NOTIFIED = "aisch_notified";
   const LS_EXPENSES = "aisch_expenses";
   const LS_INCOMES = "aisch_incomes";
+  const LS_DASHBOARD = "aisch_dashboard";
 
   /* ============ Cloud Sync (Supabase) ============ */
   const CLOUD_URL = "https://pbeyogjjflkiwhxutpva.supabase.co";
@@ -1776,7 +1792,7 @@
   // 접근한다 — 저장(save)은 서버 쪽에서 열람자(viewer) 권한을 다시 한번 막는다.
   async function pushToCloud(){
     if(!cloudClient || !currentUser) return;
-    const payload = { events, todos, memos, expenses, incomes, notified: Array.from(notifiedSet) };
+    const payload = { events, todos, memos, expenses, incomes, dashboardData, notified: Array.from(notifiedSet) };
     try{
       const { error } = await cloudClient.rpc("save_scheduler_state", { p_token: currentUser.token, p_data: payload });
       if(error) throw error;
@@ -1798,7 +1814,8 @@
         (cloud.todos && cloud.todos.length) ||
         (cloud.memos && cloud.memos.length) ||
         (cloud.expenses && cloud.expenses.length) ||
-        (cloud.incomes && cloud.incomes.length)
+        (cloud.incomes && cloud.incomes.length) ||
+        cloud.dashboardData
       ));
       if(cloudHasContent){
         events = cloud.events || [];
@@ -1806,9 +1823,10 @@
         memos = cloud.memos || [];
         expenses = cloud.expenses || [];
         incomes = cloud.incomes || [];
+        dashboardData = cloud.dashboardData || null;
         notifiedSet = new Set(cloud.notified || []);
         save(LS_EVENTS, events); save(LS_TODOS, todos); save(LS_MEMOS, memos);
-        save(LS_EXPENSES, expenses); save(LS_INCOMES, incomes); save(LS_NOTIFIED, Array.from(notifiedSet));
+        save(LS_EXPENSES, expenses); save(LS_INCOMES, incomes); save(LS_DASHBOARD, dashboardData); save(LS_NOTIFIED, Array.from(notifiedSet));
         setSyncStatus("synced");
       } else {
         setSyncStatus("synced");
@@ -2120,6 +2138,7 @@
   let notifiedSet = new Set(load(LS_NOTIFIED, []));
   let expenses = load(LS_EXPENSES, []);
   let incomes = load(LS_INCOMES, []);
+  let dashboardData = load(LS_DASHBOARD, null); // { rows:[...], updatedAt:"..." } | null
 
   let viewYear, viewMonth; // 0-based month
   let selectedDate = fmtDate(new Date());
@@ -2164,6 +2183,7 @@
   function saveNotified(){ save(LS_NOTIFIED, Array.from(notifiedSet)); scheduleCloudSync(); }
   function saveExpenses(){ save(LS_EXPENSES, expenses); scheduleCloudSync(); }
   function saveIncomes(){ save(LS_INCOMES, incomes); scheduleCloudSync(); }
+  function saveDashboardData(){ save(LS_DASHBOARD, dashboardData); scheduleCloudSync(); }
 
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -4138,7 +4158,7 @@
 
   /* ============ Backup / Restore ============ */
   document.getElementById("backupBtn").addEventListener("click", ()=>{
-    const payload = { events, todos, memos, expenses, incomes, exportedAt: new Date().toISOString() };
+    const payload = { events, todos, memos, expenses, incomes, dashboardData, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -4166,8 +4186,9 @@
         if(Array.isArray(data.memos)) memos = data.memos;
         if(Array.isArray(data.expenses)) expenses = data.expenses;
         if(Array.isArray(data.incomes)) incomes = data.incomes;
-        saveEvents(); saveTodos(); saveMemos(); saveExpenses(); saveIncomes();
-        renderCalendar(); renderDayEvents(); renderTodos(); renderMemos(); renderExpenses(); renderIncomes(); renderAISummary();
+        if(data.dashboardData) dashboardData = data.dashboardData;
+        saveEvents(); saveTodos(); saveMemos(); saveExpenses(); saveIncomes(); saveDashboardData();
+        renderCalendar(); renderDayEvents(); renderTodos(); renderMemos(); renderExpenses(); renderIncomes(); renderDashboard(); renderAISummary();
         toast("백업 데이터를 복원했습니다.", "success");
       }catch(err){
         toast("파일을 읽을 수 없습니다. 올바른 백업 파일인지 확인해주세요.", "error");
@@ -4401,6 +4422,7 @@
       renderMemos();
       renderExpenses();
       renderIncomes();
+      renderDashboard();
       renderAISummary();
       renderTaxNews();
       checkUpcomingNotifications();
@@ -4525,7 +4547,7 @@
         if(!groupConsumed && a && !b) itemName = a;
         else if(b) itemName = b;
 
-        if(!itemName) continue;
+        if(typeof itemName !== "string" || !itemName) continue;
         if(typeof c !== "number") continue;
         if(BLACKLIST.some(k => compact(itemName).includes(k))) continue;
 
@@ -4563,22 +4585,108 @@
     }
 
     const activeRows = getRows(activeSheetName);
-    const activeFormat = detectExcelSheetFormat(activeRows) || "expense";
-    const activeYm = detectExcelYearMonth(activeRows);
-    let results = parseExcelSheetRows(activeRows, activeFormat, activeYm.year, activeYm.month);
+    const activeFormat = detectExcelSheetFormat(activeRows);
+    let results = [];
+    if(activeFormat){
+      const activeYm = detectExcelYearMonth(activeRows);
+      results = parseExcelSheetRows(activeRows, activeFormat, activeYm.year, activeYm.month);
+    }
 
-    const wantFormat = activeFormat === "income" ? "expense" : "income";
+    // 활성 시트 서식을 못 알아본 경우(예: 지출/수금이 아닌 다른 표 형식) 억지로 지출로
+    // 취급하지 않고, 나머지 시트 중 지출/수금 서식을 모두 찾아서 반영한다.
+    const wantFormat = activeFormat === "income" ? "expense" : activeFormat === "expense" ? "income" : null;
     for(const name of workbook.SheetNames){
       if(name === activeSheetName) continue;
       const rows = getRows(name);
       const fmt = detectExcelSheetFormat(rows);
-      if(fmt === wantFormat){
-        const ym = detectExcelYearMonth(rows);
-        results = results.concat(parseExcelSheetRows(rows, fmt, ym.year, ym.month));
-        break;
-      }
+      if(!fmt) continue;
+      if(wantFormat !== null && fmt !== wantFormat) continue;
+      const ym = detectExcelYearMonth(rows);
+      results = results.concat(parseExcelSheetRows(rows, fmt, ym.year, ym.month));
+      if(wantFormat !== null) break;
     }
     return results;
+  }
+
+  /* ============ 본부별 수주·수금 현황 대시보드 (엑셀에서 함께 인식) ============ */
+  // 지출/수금 항목 표와는 서식이 완전히 다른 "목표 대비 실적" 요약표라서, 같은 파일 안에
+  // 이 서식의 시트가 있으면 캘린더/지출/수금과는 별도로 대시보드 데이터로만 저장한다.
+  function findDashboardHeaderRow(rows){
+    for(let i=0; i<Math.min(rows.length,6); i++){
+      const rowStr = excelImportCompact((rows[i]||[]).map(c=>String(c||"")).join(""));
+      if(rowStr.includes("구분") && rowStr.includes("수주목표") && rowStr.includes("수금목표")) return i;
+    }
+    return -1;
+  }
+  // "소계/합계"는 표에 나온 순서 그대로 하나의 막대로 그린다 — 어느 항목의 합인지 억지로
+  // 추측하면 숫자를 왜곡할 위험이 있어서, 표를 그대로 옮기는 방식을 택했다.
+  // 다만 "설계" 구간 아래의 "CM"은 실제 CM사업부와 구분하기 위해 "전략(CM)"으로 표시한다.
+  function parseDashboardSheetRows(rows, headerIdx){
+    const result = [];
+    let prevLabel = null;
+    for(let i=headerIdx+1; i<rows.length; i++){
+      const row = rows[i] || [];
+      let label = row[0];
+      if(typeof label !== "string" || !label.trim()) continue;
+      label = label.trim();
+      const orderTarget = typeof row[1] === "number" ? row[1] : null;
+      const orderActual = typeof row[2] === "number" ? row[2] : null;
+      const collectTarget = typeof row[4] === "number" ? row[4] : null;
+      const collectActual = typeof row[5] === "number" ? row[5] : null;
+      const nonNullCount = [orderTarget, orderActual, collectTarget, collectActual].filter(v=>v!==null).length;
+      if(nonNullCount < 2){ prevLabel = label; continue; }
+      let displayLabel = label;
+      if(label === "CM" && prevLabel === "설계") displayLabel = "전략(CM)";
+      result.push({
+        label: displayLabel,
+        orderTarget: orderTarget||0, orderActual: orderActual||0,
+        collectTarget: collectTarget||0, collectActual: collectActual||0,
+      });
+      prevLabel = label;
+    }
+    return result;
+  }
+  function findDashboardSheet(workbook){
+    for(const name of workbook.SheetNames){
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, raw: true, defval: null });
+      const headerIdx = findDashboardHeaderRow(rows);
+      if(headerIdx >= 0){
+        const parsed = parseDashboardSheetRows(rows, headerIdx);
+        if(parsed.length) return parsed;
+      }
+    }
+    return null;
+  }
+  function buildDashboardChartSvg(rows, targetKey, actualKey){
+    const maxVal = Math.max(1, ...rows.flatMap(r=>[r[targetKey], r[actualKey]]));
+    const groupW = 64, barW = 20, gap = 4, chartH = 160;
+    const width = rows.length * groupW;
+    const bars = rows.map((r, i)=>{
+      const gx = i * groupW;
+      const targetH = Math.round((r[targetKey]/maxVal) * chartH);
+      const actualH = Math.round((r[actualKey]/maxVal) * chartH);
+      const targetX = gx + (groupW - (barW*2+gap))/2;
+      const actualX = targetX + barW + gap;
+      const pct = r[targetKey] ? Math.round((r[actualKey]/r[targetKey])*100) : 0;
+      return `<g>
+        <title>${escapeHtml(r.label)} — 목표 ${r[targetKey].toFixed(2)}억 / 실적 ${r[actualKey].toFixed(2)}억 (${pct}%)</title>
+        <rect x="${targetX}" y="${chartH-targetH}" width="${barW}" height="${targetH}" fill="var(--border)" rx="2"/>
+        <rect x="${actualX}" y="${chartH-actualH}" width="${barW}" height="${actualH}" fill="var(--primary)" rx="2"/>
+        <text x="${gx + groupW/2}" y="${chartH+16}" text-anchor="middle" font-size="10" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
+      </g>`;
+    }).join("");
+    return `<svg viewBox="0 0 ${width} ${chartH+24}" width="${Math.max(width,320)}" height="${chartH+24}">${bars}</svg>`;
+  }
+  function renderDashboard(){
+    const card = document.getElementById("dashboardCard");
+    if(!dashboardData || !dashboardData.rows || !dashboardData.rows.length){
+      card.style.display = "none";
+      return;
+    }
+    card.style.display = "";
+    document.getElementById("dashboardUpdatedLabel").textContent = dashboardData.updatedAt ? `업데이트 ${dashboardData.updatedAt}` : "";
+    document.getElementById("dashboardOrderChart").innerHTML = `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
+    document.getElementById("dashboardCollectChart").innerHTML = `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
   }
 
   function renderExcelImportPreview(){
@@ -4614,13 +4722,28 @@
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array", cellDates: false });
         excelImportCandidates = parseExcelFundingSchedule(workbook);
+
+        const dashboardRows = findDashboardSheet(workbook);
+        if(dashboardRows){
+          dashboardData = { rows: dashboardRows, updatedAt: fmtDate(new Date()) };
+          saveDashboardData();
+          renderDashboard();
+        }
+
         if(!excelImportCandidates.length){
-          toast("가져올 항목을 찾지 못했어요.", "error");
           document.getElementById("excelImportPreview").style.display = "none";
+          if(dashboardRows){
+            toast(`본부별 수주·수금 현황 그래프를 업데이트했어요(${dashboardRows.length}건).`, "success");
+          } else {
+            toast("가져올 항목을 찾지 못했어요.", "error");
+          }
           return;
         }
         document.getElementById("excelImportPreview").style.display = "block";
         renderExcelImportPreview();
+        if(dashboardRows){
+          toast(`본부별 수주·수금 현황 그래프도 함께 업데이트했어요(${dashboardRows.length}건).`, "success");
+        }
       }catch(err){
         toast("엑셀 파일을 읽는 중 오류가 발생했어요.", "error");
       }
