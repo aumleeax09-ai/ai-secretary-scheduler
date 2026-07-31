@@ -1326,17 +1326,17 @@
     <div class="dashboard-row">
       <div class="dashboard-charts-col">
         <div style="margin-bottom:18px;">
-          <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">■ 수주 목표 대비 실적</div>
+          <div style="font-size:12.5px;font-weight:800;color:var(--text);margin-bottom:8px;">■ 수주 목표 대비 실적</div>
           <div id="dashboardOrderChart"></div>
         </div>
         <div>
-          <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">■ 매출 목표 대비 실적</div>
+          <div style="font-size:12.5px;font-weight:800;color:var(--text);margin-bottom:8px;">■ 매출 목표 대비 실적</div>
           <div id="dashboardCollectChart"></div>
         </div>
       </div>
       <div class="finance-divider"></div>
       <div class="dashboard-table-col">
-        <div style="font-size:14px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">■ 2026년 본부별 수주 및 매출 현황</div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px;">■ 2026년 본부별 수주 및 매출 현황</div>
         <div id="dashboardTable" style="overflow-x:auto;"></div>
       </div>
     </div>
@@ -4757,6 +4757,13 @@
       <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block;"></span>실적 40%미만</span>
     </div>`;
   }
+  function buildDashboardTableLegendHtml(){
+    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-sub);margin-bottom:10px;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--good);display:inline-block;"></span>달성율 70%↑</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--warn);display:inline-block;"></span>달성율 40~69%</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block;"></span>달성율 40%미만</span>
+    </div>`;
+  }
   // 수주/수금을 한 표에 같이 보여준다 — 헤더(구분)와 소계/합계 줄만 회색, 나머지는
   // 흰색. 좁은 칸 폭으로 스크롤 없이 한 화면에 들어오게 하고, 헤더 글자는 진하게.
   function buildDashboardTableHtml(rows){
@@ -4800,7 +4807,7 @@
     const legendHtml = buildDashboardLegendHtml();
     document.getElementById("dashboardOrderChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
     document.getElementById("dashboardCollectChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
-    document.getElementById("dashboardTable").innerHTML = buildDashboardTableHtml(dashboardData.rows);
+    document.getElementById("dashboardTable").innerHTML = buildDashboardTableLegendHtml() + buildDashboardTableHtml(dashboardData.rows);
   }
 
   function renderExcelImportPreview(){
