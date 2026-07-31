@@ -1329,13 +1329,13 @@
           <div id="dashboardOrderChart"></div>
         </div>
         <div>
-          <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수금 목표 대비 실적</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">매출 목표 대비 실적</div>
           <div id="dashboardCollectChart"></div>
         </div>
       </div>
       <div class="finance-divider"></div>
       <div class="dashboard-table-col">
-        <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">상세 표</div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">2026년 본부별 수주 및 매출 현황</div>
         <div id="dashboardTable" style="overflow-x:auto;"></div>
       </div>
     </div>
@@ -4755,7 +4755,7 @@
     return `<table style="border-collapse:collapse;font-size:11px;width:100%;table-layout:fixed;">
         <thead><tr style="background:var(--card-soft);">
           <th style="padding:6px 5px;text-align:left;font-weight:800;color:var(--text);border:1px solid var(--border);white-space:nowrap;">구분</th>
-          ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("수금목표")}${th("수금실적")}${th("달성율")}
+          ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("매출목표")}${th("매출실적")}${th("달성율")}
         </tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>`;
