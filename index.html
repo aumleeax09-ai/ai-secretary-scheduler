@@ -4780,30 +4780,33 @@
   // 흰색. 좁은 칸 폭으로 스크롤 없이 한 화면에 들어오게 하고, 헤더 글자는 진하게.
   function buildDashboardTableHtml(rows){
     const th = (label)=>`<th style="padding:6px 5px;text-align:right;font-weight:800;color:var(--text);border:1px solid var(--border);white-space:nowrap;">${label}</th>`;
-    const tdTarget = (v)=>`<td style="padding:5px;text-align:right;border:1px solid var(--border);white-space:nowrap;color:var(--primary);font-weight:700;">${v.toFixed(2)}억</td>`;
-    const tdActual = (v)=>`<td style="padding:5px;text-align:right;border:1px solid var(--border);white-space:nowrap;">${v.toFixed(2)}억</td>`;
-    const tdPct = (target, actual)=>{
+    const thActual = (label)=>`<th style="padding:6px 5px;text-align:right;font-weight:800;color:var(--text);border:1px solid var(--border);border-left:2px solid var(--text-sub);border-right:2px solid var(--text-sub);white-space:nowrap;">${label}</th>`;
+    const rowBorder = (strong)=> strong ? "border-top:2px solid var(--text-sub);border-bottom:2px solid var(--text-sub);" : "";
+    const tdTarget = (v, o={})=>`<td style="padding:5px;text-align:right;border:1px solid var(--border);${rowBorder(o.strongRow)}white-space:nowrap;color:var(--primary);font-weight:700;${o.boldAmount?"font-weight:800;color:var(--text);":""}">${v.toFixed(2)}억</td>`;
+    const tdActual = (v, o={})=>`<td style="padding:5px;text-align:right;border:1px solid var(--border);border-left:2px solid var(--text-sub);border-right:2px solid var(--text-sub);${rowBorder(o.strongRow)}white-space:nowrap;font-weight:700;${o.boldAmount?"font-weight:800;color:var(--text);":""}">${v.toFixed(2)}억</td>`;
+    const tdPct = (target, actual, o={})=>{
       const pct = target ? Math.round((actual/target)*100) : 0;
-      return `<td style="padding:5px;text-align:right;border:1px solid var(--border);white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:1px 6px;font-size:10.5px;">${pct}%</span></td>`;
+      return `<td style="padding:5px;text-align:right;border:1px solid var(--border);${rowBorder(o.strongRow)}white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:1px 6px;font-size:10.5px;">${pct}%</span></td>`;
     };
     const bodyRows = rows.map((r)=>{
       const isSubtotal = r.label === "소계" || r.label === "합계";
+      const isTotal = r.label === "합계";
       const rowBg = isSubtotal ? "background:var(--card-soft);" : "";
       return `
       <tr style="${rowBg}">
-        <td style="padding:5px;font-weight:${isSubtotal?800:700};border:1px solid var(--border);white-space:nowrap;">${escapeHtml(r.label)}</td>
-        ${tdTarget(r.orderTarget)}
-        ${tdActual(r.orderActual)}
-        ${tdPct(r.orderTarget, r.orderActual)}
-        ${tdTarget(r.collectTarget)}
-        ${tdActual(r.collectActual)}
-        ${tdPct(r.collectTarget, r.collectActual)}
+        <td style="padding:5px;font-weight:${isSubtotal?800:700};border:1px solid var(--border);${rowBorder(isSubtotal)}white-space:nowrap;">${escapeHtml(r.label)}</td>
+        ${tdTarget(r.orderTarget, {strongRow:isSubtotal, boldAmount:isTotal})}
+        ${tdActual(r.orderActual, {strongRow:isSubtotal, boldAmount:isTotal})}
+        ${tdPct(r.orderTarget, r.orderActual, {strongRow:isSubtotal})}
+        ${tdTarget(r.collectTarget, {strongRow:isSubtotal, boldAmount:isTotal})}
+        ${tdActual(r.collectActual, {strongRow:isSubtotal, boldAmount:isTotal})}
+        ${tdPct(r.collectTarget, r.collectActual, {strongRow:isSubtotal})}
       </tr>`;
     }).join("");
     return `<table style="border-collapse:collapse;font-size:11px;width:100%;table-layout:fixed;">
         <thead><tr style="background:var(--card-soft);">
           <th style="padding:6px 5px;text-align:left;font-weight:800;color:var(--text);border:1px solid var(--border);white-space:nowrap;">구분</th>
-          ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("매출목표")}${th("매출실적")}${th("달성율")}
+          ${th("수주목표")}${thActual("수주실적")}${th("달성율")}${th("매출목표")}${thActual("매출실적")}${th("달성율")}
         </tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>`;
