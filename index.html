@@ -1319,7 +1319,7 @@
 
   <div class="card" id="dashboardCard" style="display:none;">
     <div class="card-title">
-      <span>📊 본부별 수주·수금 현황</span>
+      <span>📊 본부별 수주·매출 현황</span>
       <span class="section-subtitle" id="dashboardUpdatedLabel"></span>
     </div>
     <div class="dashboard-row">
@@ -4623,7 +4623,7 @@
     return results;
   }
 
-  /* ============ 본부별 수주·수금 현황 대시보드 (엑셀에서 함께 인식) ============ */
+  /* ============ 본부별 수주·매출 현황 대시보드 (엑셀에서 함께 인식) ============ */
   // 지출/수금 항목 표와는 서식이 완전히 다른 "목표 대비 실적" 요약표라서, 같은 파일 안에
   // 이 서식의 시트가 있으면 캘린더/지출/수금과는 별도로 대시보드 데이터로만 저장한다.
   function findDashboardHeaderRow(rows){
@@ -4692,16 +4692,44 @@
     const rr = Math.min(r, w/2, h);
     return `M${x},${y+h} L${x},${y+rr} Q${x},${y} ${x+rr},${y} L${x+w-rr},${y} Q${x+w},${y} ${x+w},${y+rr} L${x+w},${y+h} Z`;
   }
+  // 눈금이 딱 떨어지는 숫자(1/2/5/10의 배수)로 올림 — Y축 눈금을 30.93 같은
+  // 어중간한 값이 아니라 40, 50처럼 읽기 쉬운 값으로 보여주기 위함.
+  function dashboardNiceCeil(value){
+    if(value <= 0) return 1;
+    const exp = Math.floor(Math.log10(value));
+    const base = Math.pow(10, exp);
+    const frac = value / base;
+    let niceFrac;
+    if(frac <= 1) niceFrac = 1;
+    else if(frac <= 2) niceFrac = 2;
+    else if(frac <= 5) niceFrac = 5;
+    else niceFrac = 10;
+    return niceFrac * base;
+  }
   function buildDashboardChartSvg(rows, targetKey, actualKey){
     // 소계/합계는 표에서만 보여주고, 그래프는 실제 본부 항목만 비교하도록 뺀다.
     const chartRows = rows.filter(r => r.label !== "소계" && r.label !== "합계");
-    const maxVal = Math.max(1, ...chartRows.flatMap(r=>[r[targetKey], r[actualKey]]));
-    const groupW = 76, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 26;
-    const width = chartRows.length * groupW;
+    const rawMax = Math.max(1, ...chartRows.flatMap(r=>[r[targetKey], r[actualKey]]));
+    const niceMax = dashboardNiceCeil(rawMax);
+    const tickStep = niceMax / 4;
+    const groupW = 76, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 26, leftPad = 34;
+    const plotW = chartRows.length * groupW;
+    const width = leftPad + plotW;
+
+    // Y축 눈금선 4단(0~니이스맥스) + 값 라벨.
+    const gridlines = [0,1,2,3,4].map(i=>{
+      const val = tickStep * i;
+      const y = topPad + chartH - (val/niceMax) * chartH;
+      return `<line x1="${leftPad}" y1="${y}" x2="${leftPad+plotW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>
+        <text x="${leftPad-6}" y="${y+3}" text-anchor="end" font-size="9" fill="var(--text-sub)">${val.toFixed(0)}</text>`;
+    }).join("");
+    // X축 기준선(막대가 서는 바닥)은 눈금선보다 살짝 진하게.
+    const baseline = `<line x1="${leftPad}" y1="${topPad+chartH}" x2="${leftPad+plotW}" y2="${topPad+chartH}" stroke="var(--text-sub)" stroke-width="1.2"/>`;
+
     const bars = chartRows.map((r, i)=>{
-      const gx = i * groupW;
-      const targetH = Math.round((r[targetKey]/maxVal) * chartH);
-      const actualH = Math.round((r[actualKey]/maxVal) * chartH);
+      const gx = leftPad + i * groupW;
+      const targetH = Math.round((r[targetKey]/niceMax) * chartH);
+      const actualH = Math.round((r[actualKey]/niceMax) * chartH);
       const targetX = gx + (groupW - (barW*2+gap))/2;
       const actualX = targetX + barW + gap;
       const targetY = topPad + (chartH - targetH);
@@ -4718,7 +4746,7 @@
         <text x="${gx + groupW/2}" y="${topPad + chartH + 25}" text-anchor="middle" font-size="9" font-weight="700" fill="${statusColor}">${pct}%</text>
       </g>`;
     }).join("");
-    return `<svg viewBox="0 0 ${width} ${topPad+chartH+bottomPad}" width="${Math.max(width,320)}" height="${topPad+chartH+bottomPad}">${bars}</svg>`;
+    return `<svg viewBox="0 0 ${width} ${topPad+chartH+bottomPad}" width="${Math.max(width,320)}" height="${topPad+chartH+bottomPad}">${gridlines}${baseline}${bars}</svg>`;
   }
   function buildDashboardLegendHtml(){
     return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-sub);margin-bottom:8px;">
@@ -4818,7 +4846,7 @@
         if(!excelImportCandidates.length){
           document.getElementById("excelImportPreview").style.display = "none";
           if(dashboardRows){
-            toast(`본부별 수주·수금 현황 그래프를 업데이트했어요(${dashboardRows.length}건).`, "success");
+            toast(`본부별 수주·매출 현황 그래프를 업데이트했어요(${dashboardRows.length}건).`, "success");
           } else {
             toast("가져올 항목을 찾지 못했어요.", "error");
           }
@@ -4827,7 +4855,7 @@
         document.getElementById("excelImportPreview").style.display = "block";
         renderExcelImportPreview();
         if(dashboardRows){
-          toast(`본부별 수주·수금 현황 그래프도 함께 업데이트했어요(${dashboardRows.length}건).`, "success");
+          toast(`본부별 수주·매출 현황 그래프도 함께 업데이트했어요(${dashboardRows.length}건).`, "success");
         }
       }catch(err){
         toast("엑셀 파일을 읽는 중 오류가 발생했어요.", "error");
