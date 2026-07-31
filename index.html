@@ -1138,6 +1138,29 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="resetDataModalOverlay">
+  <div class="modal" style="max-width:420px;">
+    <h2>🗑️ 엑셀 데이터 초기화</h2>
+    <div style="font-size:12px;color:var(--text-sub);margin:-8px 0 14px;line-height:1.6;">
+      삭제할 항목을 선택하세요. 직접 입력한 데이터는 삭제되지 않습니다.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;font-size:13px;">
+        <input type="checkbox" id="resetCheckSchedule" checked>
+        <span id="resetScheduleLabel">자금일정 (엑셀로 가져온 일정·지출·수금)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;font-size:13px;">
+        <input type="checkbox" id="resetCheckDashboard" checked>
+        <span id="resetDashboardLabel">본부별 수주·매출 현황</span>
+      </label>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-soft" id="resetDataCancelBtn">취소</button>
+      <button class="btn btn-danger" id="resetDataConfirmBtn">삭제</button>
+    </div>
+  </div>
+</div>
+
 <div class="app" id="appRoot" style="display:none;">
 
   <!-- TOP BAR -->
@@ -1362,10 +1385,10 @@
               <input type="checkbox" id="excelImportToExpense" checked> 지출관리
             </label>
             <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-              <input type="checkbox" id="excelImportToIncomeCalendar" checked> 수금 캘린더
+              <input type="checkbox" id="excelImportToIncomeCalendar"> 수금 캘린더
             </label>
             <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-              <input type="checkbox" id="excelImportToExpenseCalendar" checked> 지출 캘린더
+              <input type="checkbox" id="excelImportToExpenseCalendar"> 지출 캘린더
             </label>
           </div>
           <div class="modal-actions" style="margin-top:12px;">
@@ -5110,25 +5133,49 @@
     const exCount = expenses.filter(e=>e.excelImported).length;
     const inCount = incomes.filter(e=>e.excelImported).length;
     const hasDashboard = !!(dashboardData && dashboardData.rows && dashboardData.rows.length);
-    const total = evCount + exCount + inCount;
-    if(!total && !hasDashboard){ toast("엑셀로 가져온 데이터가 없어요.", "info"); return; }
-    const dashboardNote = hasDashboard ? `, 본부별 수주·매출 현황` : "";
-    if(!confirm(`엑셀로 가져온 일정 ${evCount}건, 지출 ${exCount}건, 수금 ${inCount}건${dashboardNote}을 삭제할까요?\n직접 입력한 데이터는 그대로 남습니다.`)) return;
-    events = events.filter(e=>!e.excelImported);
-    expenses = expenses.filter(e=>!e.excelImported);
-    incomes = incomes.filter(e=>!e.excelImported);
-    dashboardData = null;
-    saveEvents();
-    saveExpenses();
-    saveIncomes();
-    saveDashboardData();
+    const scheduleTotal = evCount + exCount + inCount;
+    if(!scheduleTotal && !hasDashboard){ toast("엑셀로 가져온 데이터가 없어요.", "info"); return; }
+    document.getElementById("resetScheduleLabel").textContent = `자금일정 (일정 ${evCount}건·지출 ${exCount}건·수금 ${inCount}건)`;
+    document.getElementById("resetCheckSchedule").checked = scheduleTotal > 0;
+    document.getElementById("resetCheckSchedule").disabled = scheduleTotal === 0;
+    document.getElementById("resetDashboardLabel").textContent = "본부별 수주·매출 현황" + (hasDashboard ? "" : " (데이터 없음)");
+    document.getElementById("resetCheckDashboard").checked = hasDashboard;
+    document.getElementById("resetCheckDashboard").disabled = !hasDashboard;
+    document.getElementById("resetDataModalOverlay").classList.add("open");
+  });
+  document.getElementById("resetDataCancelBtn").addEventListener("click", ()=>{
+    document.getElementById("resetDataModalOverlay").classList.remove("open");
+  });
+  document.getElementById("resetDataModalOverlay").addEventListener("click", (e)=>{
+    if(e.target.id === "resetDataModalOverlay") document.getElementById("resetDataModalOverlay").classList.remove("open");
+  });
+  document.getElementById("resetDataConfirmBtn").addEventListener("click", ()=>{
+    const wantSchedule = document.getElementById("resetCheckSchedule").checked;
+    const wantDashboard = document.getElementById("resetCheckDashboard").checked;
+    if(!wantSchedule && !wantDashboard){ toast("삭제할 항목을 선택해주세요.", "error"); return; }
+    let scheduleTotal = 0;
+    if(wantSchedule){
+      scheduleTotal = events.filter(e=>e.excelImported).length + expenses.filter(e=>e.excelImported).length + incomes.filter(e=>e.excelImported).length;
+      events = events.filter(e=>!e.excelImported);
+      expenses = expenses.filter(e=>!e.excelImported);
+      incomes = incomes.filter(e=>!e.excelImported);
+      saveEvents(); saveExpenses(); saveIncomes();
+    }
+    if(wantDashboard){
+      dashboardData = null;
+      saveDashboardData();
+    }
     renderCalendar();
     renderDayEvents();
     renderExpenses();
     renderIncomes();
     renderDashboard();
     renderAISummary();
-    toast(`엑셀로 가져온 데이터 ${total}건을 삭제했습니다.`, "info");
+    document.getElementById("resetDataModalOverlay").classList.remove("open");
+    const parts = [];
+    if(wantSchedule) parts.push(`자금일정 ${scheduleTotal}건`);
+    if(wantDashboard) parts.push("본부별 수주·매출 현황");
+    toast(`${parts.join(", ")}을(를) 삭제했습니다.`, "info");
   });
 
   initAuth();
