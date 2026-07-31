@@ -2653,8 +2653,8 @@
       cell.setAttribute("aria-label", `${viewYear}년 ${viewMonth+1}월 ${day}일`);
 
       const evs = (byDate[dateStr]||[]).slice().sort((a,b)=>(a.start||"").localeCompare(b.start||""));
-      const exps = expByDate[dateStr] || [];
-      const incs = incByDate[dateStr] || [];
+      const exps = (expByDate[dateStr] || []).filter(ex=>ex.showOnCalendar !== false);
+      const incs = (incByDate[dateStr] || []).filter(inc=>inc.showOnCalendar !== false);
       let pillsHtml = "";
       const maxShow = 3;
       evs.slice(0,maxShow).forEach(ev=>{
@@ -4036,7 +4036,7 @@
 
     if(id){
       const idx = expenses.findIndex(e=>e.id===id);
-      if(idx>-1) expenses[idx] = Object.assign({id}, data);
+      if(idx>-1) expenses[idx] = Object.assign({}, expenses[idx], data);
       toast("지출을 수정했습니다.", "success");
     } else {
       data.id = uid();
@@ -4207,7 +4207,7 @@
 
     if(id){
       const idx = incomes.findIndex(e=>e.id===id);
-      if(idx>-1) incomes[idx] = Object.assign({id}, data);
+      if(idx>-1) incomes[idx] = Object.assign({}, incomes[idx], data);
       toast("수금을 수정했습니다.", "success");
     } else {
       data.id = uid();
@@ -5073,61 +5073,38 @@
     const toExpense = document.getElementById("excelImportToExpense").checked;
     const toIncomeCalendar = document.getElementById("excelImportToIncomeCalendar").checked;
     const toExpenseCalendar = document.getElementById("excelImportToExpenseCalendar").checked;
-    if(!toIncome && !toExpense && !toIncomeCalendar && !toExpenseCalendar){
-      toast("반영할 항목(수금관리/지출관리/수금 캘린더/지출 캘린더)을 하나 이상 선택해주세요.", "error");
+    if(!toIncome && !toExpense){
+      toast("반영할 항목(수금관리/지출관리)을 하나 이상 선택해주세요.", "error");
       return;
     }
-    let expenseCreated=0, expenseUpdated=0, incomeCreated=0, incomeUpdated=0, eventCreated=0, eventUpdated=0;
+    let expenseCreated=0, expenseUpdated=0, incomeCreated=0, incomeUpdated=0;
     chosen.forEach(it=>{
       if(it.type === "income"){
-        if(toIncomeCalendar){
-          const result = upsertExcelImported(events, it,
-            ()=>({
-              id: uid(), title: it.title, date: it.date, category: "업무",
-              start: "", end: "", location: "", desc: it.note,
-              recur: "none", recurEnd: "", important: false, importantMark: "star",
-              color: "green", excelImported: true,
-            }),
-            (found)=>{ found.desc = it.note; }
-          );
-          result === "created" ? eventCreated++ : eventUpdated++;
-        }
         if(toIncome){
           const result = upsertExcelImported(incomes, it,
             ()=>({
               id: uid(), title: it.title, amount: it.amountWon, category: it.category,
               date: it.date, recur: "none", memo: it.note, excelImported: true,
+              showOnCalendar: toIncomeCalendar,
             }),
-            (found)=>{ found.amount = it.amountWon; found.category = it.category; found.memo = it.note; }
+            (found)=>{ found.amount = it.amountWon; found.category = it.category; found.memo = it.note; found.showOnCalendar = toIncomeCalendar; }
           );
           result === "created" ? incomeCreated++ : incomeUpdated++;
         }
       } else {
-        if(toExpenseCalendar){
-          const result = upsertExcelImported(events, it,
-            ()=>({
-              id: uid(), title: it.title, date: it.date, category: "업무",
-              start: "", end: "", location: "", desc: it.note,
-              recur: "none", recurEnd: "", important: false, importantMark: "star",
-              color: "indigo", excelImported: true,
-            }),
-            (found)=>{ found.desc = it.note; }
-          );
-          result === "created" ? eventCreated++ : eventUpdated++;
-        }
         if(toExpense){
           const result = upsertExcelImported(expenses, it,
             ()=>({
               id: uid(), title: it.title, amount: it.amountWon, category: it.category,
               date: it.date, recur: "none", memo: it.note, excelImported: true,
+              showOnCalendar: toExpenseCalendar,
             }),
-            (found)=>{ found.amount = it.amountWon; found.category = it.category; found.memo = it.note; }
+            (found)=>{ found.amount = it.amountWon; found.category = it.category; found.memo = it.note; found.showOnCalendar = toExpenseCalendar; }
           );
           result === "created" ? expenseCreated++ : expenseUpdated++;
         }
       }
     });
-    saveEvents();
     saveExpenses();
     saveIncomes();
     renderCalendar();
@@ -5135,10 +5112,10 @@
     renderExpenses();
     renderIncomes();
     renderAISummary();
-    const eventCount = eventCreated + eventUpdated, expenseCount = expenseCreated + expenseUpdated, incomeCount = incomeCreated + incomeUpdated;
-    const updatedTotal = eventUpdated + expenseUpdated + incomeUpdated;
+    const expenseCount = expenseCreated + expenseUpdated, incomeCount = incomeCreated + incomeUpdated;
+    const updatedTotal = expenseUpdated + incomeUpdated;
     const suffix = updatedTotal ? ` (기존 항목 ${updatedTotal}건은 덮어썼어요)` : "";
-    toast(`일정 ${eventCount}건, 지출 ${expenseCount}건, 수금 ${incomeCount}건을 등록했어요.${suffix}`, "success");
+    toast(`지출 ${expenseCount}건, 수금 ${incomeCount}건을 등록했어요.${suffix}`, "success");
     excelImportCandidates = [];
     document.getElementById("excelImportPreview").style.display = "none";
     document.getElementById("excelImportFile").value = "";
