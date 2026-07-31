@@ -222,6 +222,32 @@
     font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;
   }
 
+  /* ---------- Quick Stats ---------- */
+  .stats-row{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:12px;
+    margin-bottom:20px;
+  }
+  @media (max-width:900px){
+    .stats-row{grid-template-columns:repeat(3,1fr);}
+  }
+  @media (max-width:520px){
+    .stats-row{grid-template-columns:repeat(2,1fr);}
+  }
+  .stat-tile{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 12px;
+    text-align:center;
+    box-shadow:var(--shadow);
+    animation: fadeUp .4s ease both;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .stat-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);}
+  .stat-icon{font-size:17px;margin-bottom:6px;}
+  .stat-value{font-size:23px;font-weight:800;color:var(--primary);line-height:1.2;letter-spacing:-.3px;}
+  .stat-label{font-size:11px;color:var(--text-sub);margin-top:4px;font-weight:600;}
+
   /* ---------- AI Assistant Panel ---------- */
   .ai-panel{
     background:var(--card);
@@ -1140,6 +1166,35 @@
         <button class="icon-btn" id="adminPanelBtn" title="관리자 페이지" aria-label="관리자 페이지" style="display:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
         <button class="logout-btn" id="logoutBtn" title="로그아웃" aria-label="로그아웃">로그아웃<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
       </div>
+    </div>
+  </div>
+
+  <!-- QUICK STATS -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-tile">
+      <div class="stat-icon">📅</div>
+      <div class="stat-value" id="statToday">0</div>
+      <div class="stat-label">오늘 일정</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon">🗓️</div>
+      <div class="stat-value" id="statWeek">0</div>
+      <div class="stat-label">이번 주 일정</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon">🔵</div>
+      <div class="stat-value" id="statActive">0</div>
+      <div class="stat-label">진행 중인 할 일</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value" id="statDone">0</div>
+      <div class="stat-label">완료된 할 일</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-icon">🔴</div>
+      <div class="stat-value" id="statHigh">0</div>
+      <div class="stat-label">우선순위 높음</div>
     </div>
   </div>
 
@@ -4254,7 +4309,23 @@
   setInterval(checkUpcomingNotifications, 30000);
 
   /* ============ AI Assistant Summary ============ */
+  // 첫 화면 상단 "일정 통계" 요약 카드 — 여기서 매번 다시 계산해서, todos/events가
+  // 바뀔 때마다 함께 호출되는 renderAISummary()에 얹혀 자동으로 최신 상태를 유지한다.
+  function renderStats(){
+    const now = new Date();
+    const dow = now.getDay();
+    const mondayDiff = dow === 0 ? -6 : 1 - dow;
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayDiff);
+    const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+
+    document.getElementById("statToday").textContent = getEventsForDate(todayStr()).length;
+    document.getElementById("statWeek").textContent = getOccurrencesInRange(weekStart, weekEnd).length;
+    document.getElementById("statActive").textContent = todos.filter(t=>!t.done).length;
+    document.getElementById("statDone").textContent = todos.filter(t=>t.done).length;
+    document.getElementById("statHigh").textContent = todos.filter(t=>!t.done && t.priority==="high").length;
+  }
   function renderAISummary(){
+    renderStats();
     const todayEvs = getEventsForDate(todayStr()).sort((a,b)=>(a.start||"").localeCompare(b.start||""));
     const pendingTodos = todos.filter(t=>!t.done);
 
