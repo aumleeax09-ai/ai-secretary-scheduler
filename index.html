@@ -1402,65 +1402,79 @@
   </div>
 
   <div class="card finance-card">
-    <div class="dashboard-mask-wrap">
     <div class="finance-layout">
       <div class="finance-col">
         <div class="card-title" style="flex-wrap:wrap;">
-          <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;">💰 <span id="incomeMonthLabel">-</span> 수금 관리</span>
-            <select id="incomeCategoryFilter">
-              <option value="all">전체 카테고리</option>
-              <option value="용역비">용역비</option>
-              <option value="급여회수">급여회수</option>
-              <option value="기타수입">기타수입</option>
-              <option value="기타">기타</option>
-            </select>
-            <button class="btn btn-primary btn-sm" id="addIncomeBtn">+ 수금 추가</button>
-          </span>
-          <span class="badge" id="incomeTotalBadge">0원</span>
+          <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;">💰 <span id="incomeMonthLabel">-</span> 수금 관리</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin:2px 0 8px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-sub);cursor:pointer;">
-            <input type="checkbox" id="incomeSelectAllCheck"> 전체 선택
-          </label>
-          <button class="btn btn-soft btn-sm" id="incomeBulkDeleteBtn" style="margin-left:auto;">선택 삭제</button>
+        <div class="dashboard-mask-wrap">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+              <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <select id="incomeCategoryFilter">
+                  <option value="all">전체 카테고리</option>
+                  <option value="용역비">용역비</option>
+                  <option value="급여회수">급여회수</option>
+                  <option value="기타수입">기타수입</option>
+                  <option value="기타">기타</option>
+                </select>
+                <button class="btn btn-primary btn-sm" id="addIncomeBtn">+ 수금 추가</button>
+              </span>
+              <span class="badge" id="incomeTotalBadge">0원</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:2px 0 8px;">
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-sub);cursor:pointer;">
+                <input type="checkbox" id="incomeSelectAllCheck"> 전체 선택
+              </label>
+              <button class="btn btn-soft btn-sm" id="incomeBulkDeleteBtn" style="margin-left:auto;">선택 삭제</button>
+            </div>
+            <div class="ai-chips" id="incomeBreakdown" style="margin-bottom:10px;"></div>
+            <div class="list" id="incomeList" style="max-height:none;"></div>
+          </div>
+          <div class="dashboard-mask-overlay">
+            <span style="font-size:22px;">🔒</span>
+            <span>관리자만 볼 수 있는 정보입니다</span>
+          </div>
         </div>
-        <div class="ai-chips" id="incomeBreakdown" style="margin-bottom:10px;"></div>
-        <div class="list" id="incomeList" style="max-height:none;"></div>
       </div>
 
       <div class="finance-divider"></div>
 
       <div class="finance-col">
         <div class="card-title" style="flex-wrap:wrap;">
-          <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;">💸 <span id="expenseMonthLabel">-</span> 지출 관리</span>
-            <select id="expenseCategoryFilter">
-              <option value="all">전체 카테고리</option>
-              <option value="고정비">고정비</option>
-              <option value="변동비">변동비</option>
-              <option value="인건비">인건비</option>
-              <option value="세금">세금</option>
-              <option value="기타">기타</option>
-            </select>
-            <button class="btn btn-primary btn-sm" id="addExpenseBtn">+ 지출 추가</button>
-          </span>
-          <span class="badge" id="expenseTotalBadge">0원</span>
+          <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;">💸 <span id="expenseMonthLabel">-</span> 지출 관리</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin:2px 0 8px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-sub);cursor:pointer;">
-            <input type="checkbox" id="expenseSelectAllCheck"> 전체 선택
-          </label>
-          <button class="btn btn-soft btn-sm" id="expenseBulkDeleteBtn" style="margin-left:auto;">선택 삭제</button>
+        <div class="dashboard-mask-wrap">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+              <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <select id="expenseCategoryFilter">
+                  <option value="all">전체 카테고리</option>
+                  <option value="고정비">고정비</option>
+                  <option value="변동비">변동비</option>
+                  <option value="인건비">인건비</option>
+                  <option value="세금">세금</option>
+                  <option value="기타">기타</option>
+                </select>
+                <button class="btn btn-primary btn-sm" id="addExpenseBtn">+ 지출 추가</button>
+              </span>
+              <span class="badge" id="expenseTotalBadge">0원</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin:2px 0 8px;">
+              <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-sub);cursor:pointer;">
+                <input type="checkbox" id="expenseSelectAllCheck"> 전체 선택
+              </label>
+              <button class="btn btn-soft btn-sm" id="expenseBulkDeleteBtn" style="margin-left:auto;">선택 삭제</button>
+            </div>
+            <div class="ai-chips" id="expenseBreakdown" style="margin-bottom:10px;"></div>
+            <div class="list" id="expenseList" style="max-height:none;"></div>
+          </div>
+          <div class="dashboard-mask-overlay">
+            <span style="font-size:22px;">🔒</span>
+            <span>관리자만 볼 수 있는 정보입니다</span>
+          </div>
         </div>
-        <div class="ai-chips" id="expenseBreakdown" style="margin-bottom:10px;"></div>
-        <div class="list" id="expenseList" style="max-height:none;"></div>
       </div>
-    </div>
-    <div class="dashboard-mask-overlay">
-      <span style="font-size:22px;">🔒</span>
-      <span>관리자만 볼 수 있는 정보입니다</span>
-    </div>
     </div>
   </div>
 
