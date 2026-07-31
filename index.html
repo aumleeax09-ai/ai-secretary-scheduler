@@ -1335,7 +1335,11 @@
       </div>
       <div class="dashboard-table-col">
         <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">상세 표</div>
-        <div id="dashboardTable" style="overflow-x:auto;"></div>
+        <div class="finance-layout">
+          <div class="finance-col" id="dashboardOrderTable"></div>
+          <div class="finance-divider"></div>
+          <div class="finance-col" id="dashboardCollectTable"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -4726,30 +4730,29 @@
       <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block;"></span>실적 40%미만</span>
     </div>`;
   }
-  function buildDashboardTableHtml(rows){
-    const th = (label)=>`<th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">${label}</th>`;
-    const tdNum = (v)=>`<td style="padding:6px 10px;text-align:right;white-space:nowrap;">${v.toFixed(2)}억</td>`;
+  // 수주/수금표를 각각 따로(구분+목표+실적+달성율 4칸) 만들어서 옆으로 붙이면
+  // 스크롤 없이 좌우로 나란히 볼 수 있다 — 수금관리/지출관리 카드와 같은 방식.
+  function buildDashboardTableHalfHtml(rows, targetKey, actualKey){
+    const th = (label)=>`<th style="padding:7px 8px;text-align:right;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">${label}</th>`;
+    const tdNum = (v)=>`<td style="padding:6px 8px;text-align:right;white-space:nowrap;">${v.toFixed(2)}억</td>`;
     const tdPct = (target, actual)=>{
       const pct = target ? Math.round((actual/target)*100) : 0;
-      return `<td style="padding:6px 10px;text-align:right;white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:2px 8px;font-size:11px;">${pct}%</span></td>`;
+      return `<td style="padding:6px 8px;text-align:right;white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:2px 7px;font-size:11px;">${pct}%</span></td>`;
     };
     const bodyRows = rows.map((r,i)=>{
       const isSubtotal = r.label === "소계" || r.label === "합계";
       return `
       <tr style="${isSubtotal ? "background:var(--card-soft);border-top:1px solid var(--border);" : (i%2? "background:var(--card-soft);":"")}">
-        <td style="padding:6px 10px;font-weight:${isSubtotal?800:700};white-space:nowrap;">${escapeHtml(r.label)}</td>
-        ${tdNum(r.orderTarget)}
-        ${tdNum(r.orderActual)}
-        ${tdPct(r.orderTarget, r.orderActual)}
-        ${tdNum(r.collectTarget)}
-        ${tdNum(r.collectActual)}
-        ${tdPct(r.collectTarget, r.collectActual)}
+        <td style="padding:6px 8px;font-weight:${isSubtotal?800:700};white-space:nowrap;">${escapeHtml(r.label)}</td>
+        ${tdNum(r[targetKey])}
+        ${tdNum(r[actualKey])}
+        ${tdPct(r[targetKey], r[actualKey])}
       </tr>`;
     }).join("");
-    return `<table style="border-collapse:collapse;font-size:12px;width:100%;min-width:560px;">
+    return `<table style="border-collapse:collapse;font-size:12px;width:100%;">
       <thead><tr>
-        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">구분</th>
-        ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("수금목표")}${th("수금실적")}${th("달성율")}
+        <th style="padding:7px 8px;text-align:left;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">구분</th>
+        ${th("목표")}${th("실적")}${th("달성율")}
       </tr></thead>
       <tbody>${bodyRows}</tbody>
     </table>`;
@@ -4765,7 +4768,8 @@
     const legendHtml = buildDashboardLegendHtml();
     document.getElementById("dashboardOrderChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
     document.getElementById("dashboardCollectChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
-    document.getElementById("dashboardTable").innerHTML = buildDashboardTableHtml(dashboardData.rows);
+    document.getElementById("dashboardOrderTable").innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">수주</div>` + buildDashboardTableHalfHtml(dashboardData.rows, "orderTarget", "orderActual");
+    document.getElementById("dashboardCollectTable").innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">수금</div>` + buildDashboardTableHalfHtml(dashboardData.rows, "collectTarget", "collectActual");
   }
 
   function renderExcelImportPreview(){
