@@ -605,8 +605,13 @@
 
   /* ---------- Expense/Income list refinements ---------- */
   #expenseList .item, #incomeList .item{padding:14px 16px;align-items:center;gap:14px;}
-  #expenseList .item-title, #incomeList .item-title{font-size:13.5px;font-weight:600;}
-  #expenseList .item-meta, #incomeList .item-meta{margin-top:4px;gap:8px;}
+  #expenseList .item, #incomeList .item{align-items:center;}
+  #expenseList .item-body, #incomeList .item-body{display:flex;align-items:center;gap:8px;overflow:hidden;}
+  #expenseList .item-title, #incomeList .item-title{
+    font-size:13.5px;font-weight:600;flex:1;min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;
+  }
+  #expenseList .item-meta, #incomeList .item-meta{margin-top:0;gap:8px;flex-shrink:0;flex-wrap:nowrap;}
   #expenseList .tag, #incomeList .tag{padding:3px 9px;}
   #expenseList .expense-amount, #incomeList .income-amount{
     font-size:11px;font-weight:700;letter-spacing:-.1px;
@@ -3887,13 +3892,12 @@
       item.innerHTML = `
         <input type="checkbox" class="expense-select-check" data-id="${ex.id}" ${expenseSelectedIds.has(ex.id)?"checked":""}>
         <div class="item-body">
-          <div class="item-title">${escapeHtml(ex.title)}</div>
           <div class="item-meta">
             <span>${dateLabel}</span>
             <span class="tag ${catTag}">${escapeHtml(ex.category)}</span>
             ${ex.recur==="monthly" ? `<span class="tag tag-recur">🔁 매월</span>` : ""}
           </div>
-          ${ex.memo ? `<div class="item-meta">${escapeHtml(ex.memo)}</div>` : ""}
+          <div class="item-title" title="${escapeHtml(ex.memo ? `${ex.title} — ${ex.memo}` : ex.title)}">${escapeHtml(ex.title)}</div>
         </div>
         <div class="expense-amount">${fmtWon(ex.amount)}</div>
         <div class="item-actions">
@@ -4059,13 +4063,12 @@
       item.innerHTML = `
         <input type="checkbox" class="income-select-check" data-id="${inc.id}" ${incomeSelectedIds.has(inc.id)?"checked":""}>
         <div class="item-body">
-          <div class="item-title">${escapeHtml(inc.title)}</div>
           <div class="item-meta">
             <span>${dateLabel}</span>
             <span class="tag ${catTag}">${escapeHtml(inc.category)}</span>
             ${inc.recur==="monthly" ? `<span class="tag tag-recur">🔁 매월</span>` : ""}
           </div>
-          ${inc.memo ? `<div class="item-meta">${escapeHtml(inc.memo)}</div>` : ""}
+          <div class="item-title" title="${escapeHtml(inc.memo ? `${inc.title} — ${inc.memo}` : inc.title)}">${escapeHtml(inc.title)}</div>
         </div>
         <div class="income-amount">${fmtWon(inc.amount)}</div>
         <div class="item-actions">
