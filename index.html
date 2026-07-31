@@ -1336,11 +1336,7 @@
       <div class="finance-divider"></div>
       <div class="dashboard-table-col">
         <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">상세 표</div>
-        <div class="finance-layout">
-          <div class="finance-col" id="dashboardOrderTable"></div>
-          <div class="finance-divider"></div>
-          <div class="finance-col" id="dashboardCollectTable"></div>
-        </div>
+        <div id="dashboardTable" style="overflow-x:auto;"></div>
       </div>
     </div>
   </div>
@@ -4716,6 +4712,7 @@
         <title>${escapeHtml(r.label)} — 목표 ${r[targetKey].toFixed(2)}억 / 실적 ${r[actualKey].toFixed(2)}억 (${pct}%)</title>
         <path d="${dashboardBarPath(targetX, targetY, barW, targetH, 4)}" fill="var(--border)"/>
         <path d="${dashboardBarPath(actualX, actualY, barW, actualH, 4)}" fill="${statusColor}"/>
+        <text x="${targetX + barW/2}" y="${Math.max(targetY-4, topPad-8)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)">${r[targetKey].toFixed(1)}억</text>
         <text x="${actualX + barW/2}" y="${Math.max(actualY-4, topPad-8)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${r[actualKey].toFixed(1)}억</text>
         <text x="${gx + groupW/2}" y="${topPad + chartH + 14}" text-anchor="middle" font-size="10" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
         <text x="${gx + groupW/2}" y="${topPad + chartH + 25}" text-anchor="middle" font-size="9" font-weight="700" fill="${statusColor}">${pct}%</text>
@@ -4731,33 +4728,38 @@
       <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block;"></span>실적 40%미만</span>
     </div>`;
   }
-  // 수주/수금표를 각각 따로(구분+목표+실적+달성율 4칸) 만들어서 옆으로 붙이면
-  // 스크롤 없이 좌우로 나란히 볼 수 있다 — 수금관리/지출관리 카드와 같은 방식.
-  function buildDashboardTableHalfHtml(rows, targetKey, actualKey){
+  // 수주/수금을 한 표에 같이 보여준다 — 표 전체를 은은한 회색 배경으로 깔아
+  // 차트와 톤을 맞추고, 목표 금액만 강조색으로 표시해 실적/달성율과 구분되게 한다.
+  function buildDashboardTableHtml(rows){
     const th = (label)=>`<th style="padding:7px 8px;text-align:right;font-weight:700;color:var(--text-sub);border:1px solid var(--border);white-space:nowrap;">${label}</th>`;
-    const tdNum = (v)=>`<td style="padding:6px 8px;text-align:right;border:1px solid var(--border);white-space:nowrap;">${v.toFixed(2)}억</td>`;
+    const tdTarget = (v)=>`<td style="padding:6px 8px;text-align:right;border:1px solid var(--border);white-space:nowrap;color:var(--primary);font-weight:700;">${v.toFixed(2)}억</td>`;
+    const tdActual = (v)=>`<td style="padding:6px 8px;text-align:right;border:1px solid var(--border);white-space:nowrap;">${v.toFixed(2)}억</td>`;
     const tdPct = (target, actual)=>{
       const pct = target ? Math.round((actual/target)*100) : 0;
       return `<td style="padding:6px 8px;text-align:right;border:1px solid var(--border);white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:2px 7px;font-size:11px;">${pct}%</span></td>`;
     };
     const bodyRows = rows.map((r)=>{
       const isSubtotal = r.label === "소계" || r.label === "합계";
-      const rowBg = isSubtotal ? "background:var(--card-soft);" : "";
       return `
-      <tr style="${rowBg}">
+      <tr>
         <td style="padding:6px 8px;font-weight:${isSubtotal?800:700};border:1px solid var(--border);white-space:nowrap;">${escapeHtml(r.label)}</td>
-        ${tdNum(r[targetKey])}
-        ${tdNum(r[actualKey])}
-        ${tdPct(r[targetKey], r[actualKey])}
+        ${tdTarget(r.orderTarget)}
+        ${tdActual(r.orderActual)}
+        ${tdPct(r.orderTarget, r.orderActual)}
+        ${tdTarget(r.collectTarget)}
+        ${tdActual(r.collectActual)}
+        ${tdPct(r.collectTarget, r.collectActual)}
       </tr>`;
     }).join("");
-    return `<table style="border-collapse:collapse;font-size:12px;width:100%;">
-      <thead><tr style="background:var(--card-soft);">
-        <th style="padding:7px 8px;text-align:left;font-weight:700;color:var(--text-sub);border:1px solid var(--border);white-space:nowrap;">구분</th>
-        ${th("목표")}${th("실적")}${th("달성율")}
-      </tr></thead>
-      <tbody>${bodyRows}</tbody>
-    </table>`;
+    return `<div style="background:var(--card-soft);border-radius:10px;padding:8px;">
+      <table style="border-collapse:collapse;font-size:12px;width:100%;min-width:560px;">
+        <thead><tr>
+          <th style="padding:7px 8px;text-align:left;font-weight:700;color:var(--text-sub);border:1px solid var(--border);white-space:nowrap;">구분</th>
+          ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("수금목표")}${th("수금실적")}${th("달성율")}
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>`;
   }
   function renderDashboard(){
     const card = document.getElementById("dashboardCard");
@@ -4770,8 +4772,7 @@
     const legendHtml = buildDashboardLegendHtml();
     document.getElementById("dashboardOrderChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
     document.getElementById("dashboardCollectChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
-    document.getElementById("dashboardOrderTable").innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">수주</div>` + buildDashboardTableHalfHtml(dashboardData.rows, "orderTarget", "orderActual");
-    document.getElementById("dashboardCollectTable").innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">수금</div>` + buildDashboardTableHalfHtml(dashboardData.rows, "collectTarget", "collectActual");
+    document.getElementById("dashboardTable").innerHTML = buildDashboardTableHtml(dashboardData.rows);
   }
 
   function renderExcelImportPreview(){
