@@ -4785,11 +4785,12 @@
   // 흰색. 좁은 칸 폭으로 스크롤 없이 한 화면에 들어오게 하고, 헤더 글자는 진하게.
   function buildDashboardTableHtml(rows){
     const th = (label)=>`<th style="padding:6px 5px;text-align:right;font-weight:800;color:var(--text);border:1px solid var(--border);white-space:nowrap;">${label}</th>`;
+    const thCenter = (label)=>`<th style="padding:6px 5px;text-align:center;font-weight:800;color:var(--text);border:1px solid var(--border);white-space:nowrap;">${label}</th>`;
     const tdTarget = (v, bold)=>`<td style="padding:5px;text-align:right;border:1px solid var(--border);white-space:nowrap;color:var(--primary);font-weight:${bold?800:700};">${v.toFixed(2)}억</td>`;
     const tdActual = (v, bold)=>`<td style="padding:5px;text-align:right;border:1px solid var(--border);white-space:nowrap;font-weight:${bold?800:400};">${v.toFixed(2)}억</td>`;
     const tdPct = (target, actual, bold)=>{
       const pct = target ? Math.round((actual/target)*100) : 0;
-      return `<td style="padding:5px;text-align:right;border:1px solid var(--border);white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:1px 6px;font-size:10.5px;font-weight:${bold?800:700};">${pct}%</span></td>`;
+      return `<td style="padding:5px;text-align:center;border:1px solid var(--border);white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:1px 6px;font-size:10.5px;font-weight:${bold?800:700};">${pct}%</span></td>`;
     };
     const bodyRows = rows.map((r)=>{
       const isSubtotal = r.label === "소계" || r.label === "합계";
@@ -4808,7 +4809,7 @@
     return `<table style="border-collapse:collapse;font-size:11px;width:100%;table-layout:fixed;flex:1;">
         <thead><tr style="background:var(--card-soft);">
           <th style="padding:6px 5px;text-align:left;font-weight:800;color:var(--text);border:1px solid var(--border);white-space:nowrap;">구분</th>
-          ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("매출목표")}${th("매출실적")}${th("달성율")}
+          ${th("수주목표")}${th("수주실적")}${thCenter("달성율")}${th("매출목표")}${th("매출실적")}${thCenter("달성율")}
         </tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>`;
