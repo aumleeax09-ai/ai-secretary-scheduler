@@ -4661,11 +4661,32 @@
     }
     return null;
   }
+  // 달성율에 따라 신호등 색(좋음/보통/부족)으로 구분 — 숫자를 안 읽어도 어디가
+  // 부진한지 한눈에 보이도록 하기 위함.
+  function dashboardStatusColor(target, actual){
+    const pct = target ? (actual/target)*100 : 0;
+    if(pct >= 70) return "var(--good)";
+    if(pct >= 40) return "var(--warn)";
+    return "var(--danger)";
+  }
+  function dashboardStatusChipClass(target, actual){
+    const pct = target ? (actual/target)*100 : 0;
+    if(pct >= 70) return "chip-good";
+    if(pct >= 40) return "chip-warn";
+    return "chip-danger";
+  }
+  // 위쪽만 둥근 막대(바닥은 직각) — 데이터가 실제로 쌓이는 모양에 가깝게.
+  function dashboardBarPath(x, y, w, h, r){
+    if(h <= 0) return "";
+    const rr = Math.min(r, w/2, h);
+    return `M${x},${y+h} L${x},${y+rr} Q${x},${y} ${x+rr},${y} L${x+w-rr},${y} Q${x+w},${y} ${x+w},${y+rr} L${x+w},${y+h} Z`;
+  }
   function buildDashboardChartSvg(rows, targetKey, actualKey){
     const maxVal = Math.max(1, ...rows.flatMap(r=>[r[targetKey], r[actualKey]]));
-    const groupW = 72, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 24;
+    const groupW = 76, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 26;
     const width = rows.length * groupW;
     const bars = rows.map((r, i)=>{
+      const isSubtotal = r.label === "소계" || r.label === "합계";
       const gx = i * groupW;
       const targetH = Math.round((r[targetKey]/maxVal) * chartH);
       const actualH = Math.round((r[actualKey]/maxVal) * chartH);
@@ -4674,35 +4695,49 @@
       const targetY = topPad + (chartH - targetH);
       const actualY = topPad + (chartH - actualH);
       const pct = r[targetKey] ? Math.round((r[actualKey]/r[targetKey])*100) : 0;
+      const statusColor = dashboardStatusColor(r[targetKey], r[actualKey]);
+      const bg = isSubtotal ? `<rect x="${gx+1}" y="${topPad-6}" width="${groupW-2}" height="${chartH+bottomPad-2}" fill="var(--card-soft)" rx="6"/>` : "";
       return `<g>
         <title>${escapeHtml(r.label)} — 목표 ${r[targetKey].toFixed(2)}억 / 실적 ${r[actualKey].toFixed(2)}억 (${pct}%)</title>
-        <rect x="${targetX}" y="${targetY}" width="${barW}" height="${targetH}" fill="var(--border)" rx="2"/>
-        <rect x="${actualX}" y="${actualY}" width="${barW}" height="${actualH}" fill="var(--primary)" rx="2"/>
-        <text x="${targetX + barW/2}" y="${Math.max(targetY-4, 9)}" text-anchor="middle" font-size="8.5" fill="var(--text-sub)">${r[targetKey].toFixed(1)}</text>
-        <text x="${actualX + barW/2}" y="${Math.max(actualY-4, 9)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--primary)">${r[actualKey].toFixed(1)}</text>
-        <text x="${gx + groupW/2}" y="${topPad + chartH + 16}" text-anchor="middle" font-size="10" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
+        ${bg}
+        <path d="${dashboardBarPath(targetX, targetY, barW, targetH, 4)}" fill="var(--border)"/>
+        <path d="${dashboardBarPath(actualX, actualY, barW, actualH, 4)}" fill="${statusColor}"/>
+        <text x="${actualX + barW/2}" y="${Math.max(actualY-4, topPad-8)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${r[actualKey].toFixed(1)}</text>
+        <text x="${gx + groupW/2}" y="${topPad + chartH + 14}" text-anchor="middle" font-size="10" font-weight="${isSubtotal?700:400}" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
+        <text x="${gx + groupW/2}" y="${topPad + chartH + 25}" text-anchor="middle" font-size="9" font-weight="700" fill="${statusColor}">${pct}%</text>
       </g>`;
     }).join("");
     return `<svg viewBox="0 0 ${width} ${topPad+chartH+bottomPad}" width="${Math.max(width,320)}" height="${topPad+chartH+bottomPad}">${bars}</svg>`;
+  }
+  function buildDashboardLegendHtml(){
+    return `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-sub);margin-bottom:8px;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--border);display:inline-block;"></span>목표</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--good);display:inline-block;"></span>실적 70%↑</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--warn);display:inline-block;"></span>실적 40~69%</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--danger);display:inline-block;"></span>실적 40%미만</span>
+    </div>`;
   }
   function buildDashboardTableHtml(rows){
     const th = (label)=>`<th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">${label}</th>`;
     const tdNum = (v)=>`<td style="padding:6px 10px;text-align:right;white-space:nowrap;">${v.toFixed(2)}억</td>`;
     const tdPct = (target, actual)=>{
       const pct = target ? Math.round((actual/target)*100) : 0;
-      return `<td style="padding:6px 10px;text-align:right;white-space:nowrap;color:var(--text-sub);">${pct}%</td>`;
+      return `<td style="padding:6px 10px;text-align:right;white-space:nowrap;"><span class="ai-chip ${dashboardStatusChipClass(target,actual)}" style="display:inline-flex;padding:2px 8px;font-size:11px;">${pct}%</span></td>`;
     };
-    const bodyRows = rows.map((r,i)=>`
-      <tr style="${i%2? "background:var(--card-soft);":""}">
-        <td style="padding:6px 10px;font-weight:700;white-space:nowrap;">${escapeHtml(r.label)}</td>
+    const bodyRows = rows.map((r,i)=>{
+      const isSubtotal = r.label === "소계" || r.label === "합계";
+      return `
+      <tr style="${isSubtotal ? "background:var(--card-soft);border-top:1px solid var(--border);" : (i%2? "background:var(--card-soft);":"")}">
+        <td style="padding:6px 10px;font-weight:${isSubtotal?800:700};white-space:nowrap;">${escapeHtml(r.label)}</td>
         ${tdNum(r.orderTarget)}
         ${tdNum(r.orderActual)}
         ${tdPct(r.orderTarget, r.orderActual)}
         ${tdNum(r.collectTarget)}
         ${tdNum(r.collectActual)}
         ${tdPct(r.collectTarget, r.collectActual)}
-      </tr>`).join("");
-    return `<table style="border-collapse:collapse;font-size:12px;width:100%;min-width:520px;">
+      </tr>`;
+    }).join("");
+    return `<table style="border-collapse:collapse;font-size:12px;width:100%;min-width:560px;">
       <thead><tr>
         <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text-sub);border-bottom:1px solid var(--border);white-space:nowrap;">구분</th>
         ${th("수주목표")}${th("수주실적")}${th("달성율")}${th("수금목표")}${th("수금실적")}${th("달성율")}
@@ -4718,8 +4753,9 @@
     }
     card.style.display = "";
     document.getElementById("dashboardUpdatedLabel").textContent = dashboardData.updatedAt ? `업데이트 ${dashboardData.updatedAt}` : "";
-    document.getElementById("dashboardOrderChart").innerHTML = `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
-    document.getElementById("dashboardCollectChart").innerHTML = `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
+    const legendHtml = buildDashboardLegendHtml();
+    document.getElementById("dashboardOrderChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
+    document.getElementById("dashboardCollectChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
     document.getElementById("dashboardTable").innerHTML = buildDashboardTableHtml(dashboardData.rows);
   }
 
