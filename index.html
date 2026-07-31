@@ -4687,6 +4687,12 @@
     if(pct >= 40) return "chip-warn";
     return "chip-danger";
   }
+  function dashboardStatusSoftBg(target, actual){
+    const pct = target ? (actual/target)*100 : 0;
+    if(pct >= 70) return "var(--good-soft)";
+    if(pct >= 40) return "var(--warn-soft)";
+    return "var(--danger-soft)";
+  }
   // 위쪽만 둥근 막대(바닥은 직각) — 데이터가 실제로 쌓이는 모양에 가깝게.
   function dashboardBarPath(x, y, w, h, r){
     if(h <= 0) return "";
@@ -4713,7 +4719,7 @@
     const rawMax = Math.max(1, ...chartRows.flatMap(r=>[r[targetKey], r[actualKey]]));
     const niceMax = dashboardNiceCeil(rawMax);
     const tickStep = niceMax / 4;
-    const groupW = 76, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 26, leftPad = 34;
+    const groupW = 76, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 38, leftPad = 34;
     const plotW = chartRows.length * groupW;
     const width = leftPad + plotW;
 
@@ -4737,6 +4743,11 @@
       const actualY = topPad + (chartH - actualH);
       const pct = r[targetKey] ? Math.round((r[actualKey]/r[targetKey])*100) : 0;
       const statusColor = dashboardStatusColor(r[targetKey], r[actualKey]);
+      const statusSoftBg = dashboardStatusSoftBg(r[targetKey], r[actualKey]);
+      const pctText = `${pct}%`;
+      const pillW = Math.max(30, pctText.length * 7 + 12);
+      const pillX = gx + groupW/2 - pillW/2;
+      const pillY = topPad + chartH + 18;
       return `<g>
         <title>${escapeHtml(r.label)} — 목표 ${r[targetKey].toFixed(2)}억 / 실적 ${r[actualKey].toFixed(2)}억 (${pct}%)</title>
         <path d="${dashboardBarPath(targetX, targetY, barW, targetH, 4)}" fill="var(--border)"/>
@@ -4744,7 +4755,8 @@
         <text x="${targetX + barW/2}" y="${Math.max(targetY-4, topPad-8)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--primary)">${r[targetKey].toFixed(1)}억</text>
         <text x="${actualX + barW/2}" y="${Math.max(actualY-4, topPad-8)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${r[actualKey].toFixed(1)}억</text>
         <text x="${gx + groupW/2}" y="${topPad + chartH + 14}" text-anchor="middle" font-size="10" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
-        <text x="${gx + groupW/2}" y="${topPad + chartH + 25}" text-anchor="middle" font-size="9" font-weight="700" fill="${statusColor}">${pct}%</text>
+        <rect x="${pillX}" y="${pillY}" width="${pillW}" height="15" rx="7.5" fill="${statusSoftBg}"/>
+        <text x="${gx + groupW/2}" y="${pillY + 11}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${statusColor}">${pctText}</text>
       </g>`;
     }).join("");
     return `<svg viewBox="0 0 ${width} ${topPad+chartH+bottomPad}" width="${Math.max(width,320)}" height="${topPad+chartH+bottomPad}">${gridlines}${baseline}${bars}</svg>`;
@@ -4805,8 +4817,8 @@
     card.style.display = "";
     document.getElementById("dashboardUpdatedLabel").textContent = dashboardData.updatedAt ? `업데이트 ${dashboardData.updatedAt}` : "";
     const legendHtml = buildDashboardLegendHtml();
-    document.getElementById("dashboardOrderChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
-    document.getElementById("dashboardCollectChart").innerHTML = legendHtml + `<div style="overflow-x:auto;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
+    document.getElementById("dashboardOrderChart").innerHTML = legendHtml + `<div style="overflow-x:auto;background:var(--card-soft);border-radius:10px;padding:10px 6px;">${buildDashboardChartSvg(dashboardData.rows, "orderTarget", "orderActual")}</div>`;
+    document.getElementById("dashboardCollectChart").innerHTML = legendHtml + `<div style="overflow-x:auto;background:var(--card-soft);border-radius:10px;padding:10px 6px;">${buildDashboardChartSvg(dashboardData.rows, "collectTarget", "collectActual")}</div>`;
     document.getElementById("dashboardTable").innerHTML = buildDashboardTableLegendHtml() + buildDashboardTableHtml(dashboardData.rows);
   }
 
