@@ -290,6 +290,12 @@
     gap:20px;
   }
   .finance-col{flex:1;min-width:0;}
+  .dashboard-row{display:flex;gap:24px;align-items:flex-start;}
+  .dashboard-charts-col{flex:1.4;min-width:0;}
+  .dashboard-table-col{flex:1;min-width:0;}
+  @media (max-width: 980px){
+    .dashboard-row{flex-direction:column;}
+  }
   .finance-divider{width:1px;background:var(--border);flex-shrink:0;}
   @media (max-width: 980px){
     .finance-layout{flex-direction:column;}
@@ -1316,17 +1322,21 @@
       <span>📊 본부별 수주·수금 현황</span>
       <span class="section-subtitle" id="dashboardUpdatedLabel"></span>
     </div>
-    <div style="margin-bottom:18px;">
-      <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수주 목표 대비 실적</div>
-      <div id="dashboardOrderChart"></div>
-    </div>
-    <div style="margin-bottom:18px;">
-      <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수금 목표 대비 실적</div>
-      <div id="dashboardCollectChart"></div>
-    </div>
-    <div>
-      <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">상세 표</div>
-      <div id="dashboardTable" style="overflow-x:auto;"></div>
+    <div class="dashboard-row">
+      <div class="dashboard-charts-col">
+        <div style="margin-bottom:18px;">
+          <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수주 목표 대비 실적</div>
+          <div id="dashboardOrderChart"></div>
+        </div>
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">수금 목표 대비 실적</div>
+          <div id="dashboardCollectChart"></div>
+        </div>
+      </div>
+      <div class="dashboard-table-col">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text-sub);margin-bottom:8px;">상세 표</div>
+        <div id="dashboardTable" style="overflow-x:auto;"></div>
+      </div>
     </div>
   </div>
 
@@ -4682,11 +4692,12 @@
     return `M${x},${y+h} L${x},${y+rr} Q${x},${y} ${x+rr},${y} L${x+w-rr},${y} Q${x+w},${y} ${x+w},${y+rr} L${x+w},${y+h} Z`;
   }
   function buildDashboardChartSvg(rows, targetKey, actualKey){
-    const maxVal = Math.max(1, ...rows.flatMap(r=>[r[targetKey], r[actualKey]]));
+    // 소계/합계는 표에서만 보여주고, 그래프는 실제 본부 항목만 비교하도록 뺀다.
+    const chartRows = rows.filter(r => r.label !== "소계" && r.label !== "합계");
+    const maxVal = Math.max(1, ...chartRows.flatMap(r=>[r[targetKey], r[actualKey]]));
     const groupW = 76, barW = 22, gap = 4, chartH = 160, topPad = 16, bottomPad = 26;
-    const width = rows.length * groupW;
-    const bars = rows.map((r, i)=>{
-      const isSubtotal = r.label === "소계" || r.label === "합계";
+    const width = chartRows.length * groupW;
+    const bars = chartRows.map((r, i)=>{
       const gx = i * groupW;
       const targetH = Math.round((r[targetKey]/maxVal) * chartH);
       const actualH = Math.round((r[actualKey]/maxVal) * chartH);
@@ -4696,14 +4707,12 @@
       const actualY = topPad + (chartH - actualH);
       const pct = r[targetKey] ? Math.round((r[actualKey]/r[targetKey])*100) : 0;
       const statusColor = dashboardStatusColor(r[targetKey], r[actualKey]);
-      const bg = isSubtotal ? `<rect x="${gx+1}" y="${topPad-6}" width="${groupW-2}" height="${chartH+bottomPad-2}" fill="var(--card-soft)" rx="6"/>` : "";
       return `<g>
         <title>${escapeHtml(r.label)} — 목표 ${r[targetKey].toFixed(2)}억 / 실적 ${r[actualKey].toFixed(2)}억 (${pct}%)</title>
-        ${bg}
         <path d="${dashboardBarPath(targetX, targetY, barW, targetH, 4)}" fill="var(--border)"/>
         <path d="${dashboardBarPath(actualX, actualY, barW, actualH, 4)}" fill="${statusColor}"/>
-        <text x="${actualX + barW/2}" y="${Math.max(actualY-4, topPad-8)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${r[actualKey].toFixed(1)}</text>
-        <text x="${gx + groupW/2}" y="${topPad + chartH + 14}" text-anchor="middle" font-size="10" font-weight="${isSubtotal?700:400}" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
+        <text x="${actualX + barW/2}" y="${Math.max(actualY-4, topPad-8)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">${r[actualKey].toFixed(1)}억</text>
+        <text x="${gx + groupW/2}" y="${topPad + chartH + 14}" text-anchor="middle" font-size="10" fill="var(--text-sub)">${escapeHtml(r.label)}</text>
         <text x="${gx + groupW/2}" y="${topPad + chartH + 25}" text-anchor="middle" font-size="9" font-weight="700" fill="${statusColor}">${pct}%</text>
       </g>`;
     }).join("");
