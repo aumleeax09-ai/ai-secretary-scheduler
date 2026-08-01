@@ -1597,7 +1597,7 @@
         <button type="button" class="btn btn-soft btn-sm" id="eventMapBtn" style="white-space:nowrap;">지도에서 보기</button>
       </div>
       <div id="eventMapPreviewWrap" style="display:none;margin-top:8px;border-radius:12px;overflow:hidden;border:1px solid var(--border);">
-        <iframe id="eventMapPreview" style="width:100%;height:180px;border:0;display:block;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <iframe id="eventMapPreview" style="width:100%;height:280px;border:0;display:block;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
     <div class="form-row">
@@ -2859,7 +2859,7 @@
       iframe.src = "";
       return;
     }
-    iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(loc)}&output=embed`;
+    iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(loc)}&z=17&output=embed`;
     wrap.style.display = "block";
   }
 
