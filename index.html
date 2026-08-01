@@ -1126,12 +1126,14 @@
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
-      <button class="btn btn-soft" id="sampleExcelBtn">📊 샘플 엑셀 만들기</button>
-      <button class="btn btn-primary" id="sampleGenerateBtn">✨ 샘플데이터 생성</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-soft" id="sampleExcelBtn" style="flex:1;">📊 샘플 엑셀 만들기</button>
+        <button class="btn btn-primary" id="sampleGenerateBtn" style="flex:1;">✨ 샘플데이터 생성</button>
+      </div>
       <div style="display:flex;gap:8px;">
         <input type="file" id="sampleImportFile" accept=".xlsx,.xls" class="hidden">
         <button class="btn btn-soft" id="sampleImportBtn" style="flex:1;">📥 엑셀 불러오기</button>
-        <button class="btn btn-soft" id="sampleExportBtn" style="flex:1;">📤 엑셀로 내보내기</button>
+        <button class="btn btn-soft" id="sampleExportBtn" style="flex:1;">📤 엑셀 내보내기</button>
       </div>
       <button class="btn btn-danger" id="sampleResetBtn">🗑️ DB 초기화 (샘플로 만든 항목만 삭제)</button>
     </div>
