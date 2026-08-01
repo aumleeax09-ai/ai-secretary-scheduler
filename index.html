@@ -1128,6 +1128,11 @@
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
       <button class="btn btn-soft" id="sampleExcelBtn">📊 샘플 엑셀 만들기</button>
       <button class="btn btn-primary" id="sampleGenerateBtn">✨ 샘플데이터 생성</button>
+      <div style="display:flex;gap:8px;">
+        <input type="file" id="sampleImportFile" accept=".xlsx,.xls" class="hidden">
+        <button class="btn btn-soft" id="sampleImportBtn" style="flex:1;">📥 엑셀 불러오기</button>
+        <button class="btn btn-soft" id="sampleExportBtn" style="flex:1;">📤 엑셀로 내보내기</button>
+      </div>
       <button class="btn btn-danger" id="sampleResetBtn">🗑️ DB 초기화 (샘플로 만든 항목만 삭제)</button>
     </div>
     <div class="modal-actions" style="margin-top:14px;">
@@ -3044,6 +3049,8 @@
     { cat:"기타", color:"gray", sub:"자금현황", title:"주간 수입및 지출내역 작성/결재", freq:"매주 금요일" },
     { cat:"기타", color:"gray", sub:"주식양도 양수", title:"계약서 작성/세무서 신고/세금납부", freq:"발생시" },
   ];
+  const SAMPLE_CATEGORY_COLOR = {};
+  SAMPLE_TASK_TEMPLATES.forEach(t=>{ if(!SAMPLE_CATEGORY_COLOR[t.cat]) SAMPLE_CATEGORY_COLOR[t.cat] = t.color; });
 
   function getBusinessDaysInMonth(year, month){
     const days = [];
@@ -3174,6 +3181,91 @@
     renderAISummary();
     toast(`샘플 일정 ${rows.length}건을 ${monthStr}에 생성했습니다.`, "success");
     document.getElementById("sampleDataModalOverlay").classList.remove("open");
+  });
+
+  // 엑셀 셀은 "YYYY-MM-DD" 같은 날짜 문자열도 자동으로 날짜 일련번호(숫자)로 인식해버려서
+  // (그대로 문자열로 읽으면 "2/5/99"처럼 깨진다), SheetJS의 날짜 변환기로 되돌려 복원한다.
+  function excelSampleCellToDateStr(cell){
+    if(typeof cell === "number"){
+      const dc = XLSX.SSF.parse_date_code(cell);
+      if(dc) return `${dc.y}-${String(dc.m).padStart(2,"0")}-${String(dc.d).padStart(2,"0")}`;
+      return "";
+    }
+    if(typeof cell === "string"){
+      const s = cell.trim();
+      const m1 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if(m1) return `${m1[1]}-${m1[2].padStart(2,"0")}-${m1[3].padStart(2,"0")}`;
+    }
+    return "";
+  }
+  document.getElementById("sampleImportBtn").addEventListener("click", ()=>{
+    document.getElementById("sampleImportFile").click();
+  });
+  document.getElementById("sampleImportFile").addEventListener("change", ()=>{
+    const file = document.getElementById("sampleImportFile").files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array", cellDates: false });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+        const headerIdx = rows.findIndex(r => r[0] && String(r[0]).trim() === "날짜");
+        if(headerIdx < 0){
+          toast("엑셀 형식을 확인해주세요 (날짜/대분류/중분류/세부내역/비고 열이 필요해요).", "error");
+          return;
+        }
+        let created = 0;
+        for(let i=headerIdx+1; i<rows.length; i++){
+          const row = rows[i] || [];
+          const date = excelSampleCellToDateStr(row[0]);
+          const cat = row[1] ? String(row[1]).trim() : "";
+          const sub = row[2] ? String(row[2]).trim() : "";
+          const title = row[3] ? String(row[3]).trim() : "";
+          const freq = row[4] ? String(row[4]).trim() : "";
+          if(!date || !title) continue;
+          events.push({
+            id: uid(), title, date, category: "업무",
+            start: "", end: "", location: "", desc: [cat, sub, freq].filter(Boolean).join(" · "),
+            recur: "none", recurEnd: "", important: false, importantMark: "star",
+            color: SAMPLE_CATEGORY_COLOR[cat] || "indigo", sample: true,
+          });
+          created++;
+        }
+        if(!created){ toast("가져올 항목을 찾지 못했어요.", "error"); return; }
+        saveEvents();
+        renderCalendar();
+        renderDayEvents();
+        renderAISummary();
+        toast(`엑셀에서 샘플 일정 ${created}건을 불러왔습니다.`, "success");
+        document.getElementById("sampleDataModalOverlay").classList.remove("open");
+      }catch(err){
+        toast("엑셀 파일을 읽는 중 오류가 발생했어요.", "error");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    document.getElementById("sampleImportFile").value = "";
+  });
+
+  document.getElementById("sampleExportBtn").addEventListener("click", ()=>{
+    const sampleEvents = events.filter(e=>e.sample).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    if(!sampleEvents.length){ toast("내보낼 샘플 일정이 없어요.", "info"); return; }
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("샘플 일정");
+    ws.columns = [{width:12},{width:10},{width:18},{width:38},{width:12}];
+    const headerRow = ws.addRow(["날짜","대분류","중분류","세부내역","비고"]);
+    headerRow.eachCell(c=>{ c.font = { bold: true }; c.border = EXPORT_THIN_BORDER; });
+    sampleEvents.forEach(ev=>{
+      const parts = (ev.desc||"").split(" · ");
+      const row = ws.addRow([ev.date, parts[0]||"", parts[1]||"", ev.title, parts[2]||""]);
+      row.eachCell({ includeEmpty: true }, c=> c.border = EXPORT_THIN_BORDER);
+    });
+    downloadWorkbook(wb, `샘플일정_생성됨_${fmtDate(new Date())}.xlsx`).then(()=>{
+      toast(`샘플 일정 ${sampleEvents.length}건을 엑셀로 내보냈습니다.`, "success");
+    }).catch(()=>{
+      toast("엑셀을 만드는 중 오류가 발생했어요.", "error");
+    });
   });
 
   document.getElementById("sampleResetBtn").addEventListener("click", ()=>{
