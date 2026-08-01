@@ -1596,6 +1596,9 @@
         <input type="text" id="eventLocation" placeholder="예: 강남역 2번 출구" style="flex:1;">
         <button type="button" class="btn btn-soft btn-sm" id="eventMapBtn" style="white-space:nowrap;">지도에서 보기</button>
       </div>
+      <div id="eventMapPreviewWrap" style="display:none;margin-top:8px;border-radius:12px;overflow:hidden;border:1px solid var(--border);">
+        <iframe id="eventMapPreview" style="width:100%;height:180px;border:0;display:block;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
     </div>
     <div class="form-row">
       <label><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>메모</label>
@@ -2846,6 +2849,20 @@
     return {daily:"매일", weekly:"매주", monthly:"매월", yearly:"매년"}[r] || "";
   }
 
+  // 키 발급 없이 쓸 수 있는 구글맵 임베드 방식(output=embed) — 카카오맵 API 키가 없을 때의 대안.
+  function updateEventMapPreview(){
+    const loc = document.getElementById("eventLocation").value.trim();
+    const wrap = document.getElementById("eventMapPreviewWrap");
+    const iframe = document.getElementById("eventMapPreview");
+    if(!loc){
+      wrap.style.display = "none";
+      iframe.src = "";
+      return;
+    }
+    iframe.src = `https://www.google.com/maps?q=${encodeURIComponent(loc)}&output=embed`;
+    wrap.style.display = "block";
+  }
+
   /* ============ Event CRUD ============ */
   function openEventModal(ev){
     document.getElementById("eventModalTitle").textContent = ev ? "일정 수정" : "일정 추가";
@@ -2856,6 +2873,7 @@
     setTimeFieldValue("eventStart", ev ? (ev.start||"") : "");
     setTimeFieldValue("eventEnd", ev ? (ev.end||"") : "");
     document.getElementById("eventLocation").value = ev ? (ev.location||"") : "";
+    updateEventMapPreview();
     document.getElementById("eventDesc").value = ev ? (ev.desc||"") : "";
     document.getElementById("eventRecur").value = ev ? (ev.recur||"none") : "none";
     document.getElementById("eventRecurEnd").value = ev ? (ev.recurEnd||"") : "";
@@ -3289,6 +3307,7 @@
     if(!loc){ toast("장소를 입력해주세요.", "error"); return; }
     window.open(`https://map.kakao.com/link/search/${encodeURIComponent(loc)}`, "_blank", "noopener");
   });
+  document.getElementById("eventLocation").addEventListener("blur", updateEventMapPreview);
 
   function setImportantMark(mark){
     document.querySelectorAll("#eventImportantMarkToggle .mark-btn").forEach(btn=>{
