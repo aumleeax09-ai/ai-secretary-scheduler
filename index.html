@@ -800,6 +800,7 @@
   }
   .field-icon{width:14px;height:14px;flex-shrink:0;color:var(--text-sub);}
   .form-row input, .form-row select, .form-row textarea{width:100%;}
+  .cat-check-label{white-space:nowrap;flex-shrink:0;}
   .modal select, .modal input[type=text], .modal input[type=date], .modal input[type=time], .modal textarea{
     padding:10px 12px;border-radius:12px;
   }
@@ -1117,12 +1118,12 @@
     <div class="form-row">
       <label>포함할 업무 분류</label>
       <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12.5px;">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="계약" checked> 계약</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="결산" checked> 결산</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="신고" checked> 신고</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="일일업무" checked> 일일업무</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="지출" checked> 지출</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="기타" checked> 기타</label>
+        <label class="cat-check-label" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="계약" checked> 계약</label>
+        <label class="cat-check-label" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="결산" checked> 결산</label>
+        <label class="cat-check-label" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="신고" checked> 신고</label>
+        <label class="cat-check-label" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="일일업무" checked> 일일업무</label>
+        <label class="cat-check-label" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="지출" checked> 지출</label>
+        <label class="cat-check-label" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:400;"><input type="checkbox" class="sample-cat-check" value="기타" checked> 기타</label>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">
